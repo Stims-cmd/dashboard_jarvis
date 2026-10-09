@@ -1,13 +1,9 @@
-"""Veille cyber module (placeholder until its own step)."""
-
-from fastapi import APIRouter
+"""Veille cyber: daily watch of exploited and critical vulnerabilities."""
 
 from app.modules_registry import ModuleInfo
+from modules.veille_cyber.collector import collect
+from modules.veille_cyber.routes import router
 
 MODULE = ModuleInfo(id="veille_cyber", title="Veille cyber", order=1)
-router = APIRouter()
 
-
-@router.get("/status")
-def status() -> dict[str, str]:
-    return {"status": "not_implemented"}
+__all__ = ["MODULE", "collect", "router"]
