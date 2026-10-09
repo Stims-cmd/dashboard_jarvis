@@ -1,0 +1,151 @@
+:root {
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --border: #d1d5db;
+  --text: #111827;
+  --muted: #6b7280;
+  --accent: #2563eb;
+  --error: #b91c1c;
+  color-scheme: light;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111318;
+    --surface: #1c1f26;
+    --border: #343a46;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --accent: #60a5fa;
+    --error: #f87171;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.centered {
+  text-align: center;
+  margin-top: 30vh;
+  color: var(--muted);
+}
+
+.error {
+  color: var(--error);
+}
+
+/* Login */
+.login {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  width: min(320px, calc(100% - 32px));
+  margin: 18vh auto 0;
+  padding: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.login h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.login label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.login input {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.login button[type='submit'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Desktop */
+.desktop {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.taskbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.workspace {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+.window {
+  display: flex !important;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+  overflow: hidden;
+}
+
+.window-title {
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: move;
+  user-select: none;
+}
+
+.window-body {
+  flex: 1;
+  padding: 0.75rem;
+  overflow: auto;
+}
+
+.placeholder {
+  color: var(--muted);
+  margin: 0;
+}
