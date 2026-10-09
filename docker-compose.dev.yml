@@ -14,6 +14,8 @@ services:
     volumes:
       - ./backend:/app
       - jarvis-dev-data:/data
+      # data/skills.md, read-only (the directory is mounted so a missing file is not an error)
+      - ./data:/config:ro
     ports:
       - "127.0.0.1:8000:8000"
 

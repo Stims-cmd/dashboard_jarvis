@@ -1,0 +1,11 @@
+[Unit]
+Description=Jarvis - Veille cyber collection, every morning
+
+[Timer]
+OnCalendar=*-*-* 06:30:00 Europe/Paris
+# Catch up after a reboot if the 06:30 run was missed.
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

@@ -3,7 +3,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     nvd_api_key: SecretStr | None = None
     # List of software the owner already knows (one "- name" per line).
     skills_file: Path = Path("/config/skills.md")
+
+    @field_validator("anthropic_api_key", "nvd_api_key", mode="before")
+    @classmethod
+    def empty_means_missing(cls, value: object) -> object:
+        # "ANTHROPIC_API_KEY=" left empty in .env must not count as a key.
+        return None if isinstance(value, str) and not value.strip() else value
 
 
 @lru_cache
