@@ -24,4 +24,5 @@ export const api = {
     request<void>('/api/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
   logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
   modules: () => request<ModuleInfo[]>('/api/modules'),
+  get: <T>(path: string) => request<T>(path),
 }

@@ -149,3 +149,93 @@ button {
   color: var(--muted);
   margin: 0;
 }
+
+code {
+  font-size: 0.85em;
+}
+
+.warning {
+  color: var(--error);
+}
+
+/* Veille cyber window */
+.vc h3 {
+  margin: 0.9rem 0 0.4rem;
+  font-size: 0.95rem;
+}
+
+.vc-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.vc-digest {
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.vc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.vc-item {
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.vc-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.vc-item-head a {
+  color: var(--accent);
+}
+
+.vc-item-product {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.vc-item-desc {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+}
+
+.badge {
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.badge-danger {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.vc-sheet {
+  margin: 0.3rem 0;
+}
+
+.vc-sheet summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.disclaimer {
+  margin: 0.8rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
