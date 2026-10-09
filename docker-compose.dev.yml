@@ -1,0 +1,35 @@
+# Local development: docker compose -f docker-compose.dev.yml up
+# Code is mounted into the containers and reloaded on change.
+services:
+  backend:
+    build:
+      context: ./backend
+      target: dev
+    env_file: .env
+    environment:
+      JARVIS_DATABASE_URL: sqlite:////data/jarvis.db
+      JARVIS_COOKIE_SECURE: "false"
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      - ./backend:/app
+      - jarvis-dev-data:/data
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    environment:
+      JARVIS_API_URL: http://backend:8000
+      VITE_USE_POLLING: "true"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  jarvis-dev-data:
