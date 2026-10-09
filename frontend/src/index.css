@@ -239,3 +239,86 @@ code {
   font-size: 0.75rem;
   color: var(--muted);
 }
+
+/* Finances window */
+.fin section {
+  margin-bottom: 0.9rem;
+}
+
+.fin h3 {
+  margin: 0.6rem 0 0.4rem;
+  font-size: 0.95rem;
+}
+
+.fin-disclaimer {
+  margin-top: 0;
+}
+
+.fin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fin-account {
+  padding: 0.45rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.fin-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.fin-amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.fin-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.fin progress {
+  width: 100%;
+  max-width: 220px;
+  vertical-align: middle;
+}
+
+.fin details summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.fin-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.fin-form input,
+.fin-form select {
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  max-width: 100%;
+}
+
+.link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}

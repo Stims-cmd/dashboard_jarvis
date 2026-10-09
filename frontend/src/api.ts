@@ -15,7 +15,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   })
   if (response.status === 401) throw new UnauthorizedError()
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  return response.status === 204 ? (undefined as T) : ((await response.json()) as T)
+  // Some writes answer with an empty body (204, or 201 without content).
+  const text = await response.text()
+  return (text ? JSON.parse(text) : undefined) as T
 }
 
 export const api = {
@@ -25,4 +27,8 @@ export const api = {
   logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
   modules: () => request<ModuleInfo[]>('/api/modules'),
   get: <T>(path: string) => request<T>(path),
+  post: <T = void>(path: string, body: unknown) =>
+    request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
+  put: (path: string, body: unknown) => request<void>(path, { method: 'PUT', body: JSON.stringify(body) }),
+  del: (path: string) => request<void>(path, { method: 'DELETE' }),
 }
