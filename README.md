@@ -94,6 +94,18 @@ journalctl -u jarvis-veille.service            # journaux
 
 Adapter `WorkingDirectory` si le dépôt n'est pas dans `/opt/jarvis`.
 
+## Module Finances
+
+Suivi manuel des comptes (Livret A, Livret Jeune, compte courant, compte pro) : **information indicative, pas un conseil en investissement**.
+
+- **Relevés de solde** : noter de temps en temps le solde de chaque compte à une date (un relevé par compte et par jour ; le ressaisir le remplace). Montants en euros, stockés en centimes.
+- **Taux** : saisis à la main après vérification à la source ([Livret A sur service-public.fr](https://www.service-public.fr/particuliers/vosdroits/F2365), [Livret Jeune sur economie.gouv.fr](https://www.economie.gouv.fr/particuliers/gerer-mon-argent/gerer-mon-budget-et-mon-epargne/livret-jeune-quelles-sont-ses-caracteristiques)). La fenêtre signale « à vérifier » après chaque révision officielle (1er février, 1er août) et si le Livret Jeune passe sous le Livret A.
+- **Plafonds** : pré-remplis (22 950 € et 1 600 €, versements hors intérêts capitalisés), modifiables ; alerte au-delà de 90 %.
+- **Intérêts** : estimation sur 12 mois (solde × taux). Le calcul réel se fait par quinzaines.
+- **Objectifs** : sur un compte ou sur l'ensemble des livrets, avec l'effort mensuel nécessaire si une échéance est fixée.
+
+Aucun numéro de compte, IBAN ou identifiant bancaire n'est stocké : chaque compte n'a qu'un libellé. Les journaux du serveur ne contiennent aucun montant.
+
 ## Sécurité
 
 - `.env` n'est jamais commité ; `.env.example` documente chaque variable.
