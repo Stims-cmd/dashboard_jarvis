@@ -59,6 +59,41 @@ docker compose up -d --build
 
 nginx sert le frontend et relaie `/api` vers le backend, sur `127.0.0.1:8080` uniquement (port modifiable avec `JARVIS_HTTP_PORT`). Sur le VPS, l'accès se fera par Tailscale : aucun port applicatif n'est exposé sur Internet. Mettre `JARVIS_COOKIE_SECURE=true` dès que le dashboard est servi en HTTPS.
 
+## Module Veille cyber
+
+Chaque matin, le collecteur :
+
+1. télécharge le catalogue [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) (vulnérabilités activement exploitées) ;
+2. récupère dans la [NVD](https://nvd.nist.gov/developers/vulnerabilities) le détail des nouvelles entrées KEV et les CVE critiques publiées depuis la dernière collecte ;
+3. ajoute le score [EPSS](https://www.first.org/epss/) (probabilité d'exploitation à 30 jours) ;
+4. si une clé Claude est configurée : rédige un résumé d'environ 5 minutes et une fiche pédagogique pour chaque logiciel absent de `data/skills.md` (5 fiches maximum par jour).
+
+Lancer une collecte à la main :
+
+```sh
+docker compose -f docker-compose.dev.yml run --rm backend python -m app.collect veille_cyber
+```
+
+Configuration (dans `.env`, voir `.env.example`) :
+
+- `ANTHROPIC_API_KEY` : optionnelle. Sans elle, la fenêtre affiche la liste brute triée par priorité. Seules des données publiques (CVE, produits, scores) sont envoyées à l'API ; chaque appel est journalisé (modèle, tokens, coût estimé) dans la table `llm_calls`, et le coût du mois s'affiche dans la fenêtre.
+- `JARVIS_NVD_API_KEY` : optionnelle et gratuite ; sans elle, le collecteur attend 6 s entre deux requêtes NVD.
+- `data/skills.md` : copier `data/skills.example.md` et lister les logiciels connus. Ce fichier n'est pas commité et n'est jamais envoyé à Claude.
+
+### Planification (serveur)
+
+Les fichiers `deploy/systemd/jarvis-veille.service` et `.timer` lancent la collecte chaque jour à 6h30 (heure de Paris), en rattrapant une exécution manquée après un redémarrage :
+
+```sh
+sudo cp deploy/systemd/jarvis-veille.* /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now jarvis-veille.timer
+systemctl list-timers jarvis-veille.timer      # prochaine exécution
+journalctl -u jarvis-veille.service            # journaux
+```
+
+Adapter `WorkingDirectory` si le dépôt n'est pas dans `/opt/jarvis`.
+
 ## Sécurité
 
 - `.env` n'est jamais commité ; `.env.example` documente chaque variable.

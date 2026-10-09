@@ -10,6 +10,7 @@
 *.db-shm
 data/*
 !data/.gitkeep
+!data/skills.example.md
 
 # Python
 __pycache__/

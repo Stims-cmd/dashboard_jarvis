@@ -13,6 +13,8 @@ services:
       FORWARDED_ALLOW_IPS: "*"
     volumes:
       - jarvis-data:/data
+      # data/skills.md, read-only (the directory is mounted so a missing file is not an error)
+      - ./data:/config:ro
     restart: unless-stopped
 
   frontend:

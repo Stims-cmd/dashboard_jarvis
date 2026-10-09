@@ -1,0 +1,355 @@
+{
+ "resultsPerPage": 3,
+ "startIndex": 0,
+ "totalResults": 14,
+ "format": "NVD_CVE",
+ "version": "2.0",
+ "timestamp": "2026-10-09T18:32:06.377",
+ "vulnerabilities": [
+  {
+   "cve": {
+    "id": "CVE-2026-17609",
+    "sourceIdentifier": "security@wordfence.com",
+    "published": "2026-10-08T05:17:04.793",
+    "lastModified": "2026-10-08T17:24:11.230",
+    "vulnStatus": "Deferred",
+    "cveTags": [],
+    "descriptions": [
+     {
+      "lang": "en",
+      "value": "The Super Forms – Drag & Drop Form Builder plugin for WordPress is vulnerable to Arbitrary Directory Deletion in all versions up to, and including, 6.3.316 via the submit_form function. This is due to insufficient validation of attacker-controlled JSON field declarations against the actual form schema, combined with a non-effective ABSPATH guard that dirname() trivially bypasses by stripping the trailing slash. This makes it possible for unauthenticated attackers to recursively delete arbitrary directories on the server, including the WordPress root directory. Exploitation requires that an administrator has enabled the 'Delete files from server after form submissions' setting, though this is a documented and commonly-enabled feature."
+     }
+    ],
+    "affected": [
+     {
+      "source": "security@wordfence.com",
+      "affectedData": [
+       {
+        "vendor": "WebRehab",
+        "product": "Super Forms – Drag & Drop Form Builder",
+        "defaultStatus": "unaffected",
+        "versions": [
+         {
+          "version": "0",
+          "lessThanOrEqual": "6.3.316",
+          "versionType": "semver",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "metrics": {
+     "cvssMetricV31": [
+      {
+       "source": "security@wordfence.com",
+       "type": "Primary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:H",
+        "baseScore": 9.1,
+        "baseSeverity": "CRITICAL",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "NONE",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "NONE",
+        "integrityImpact": "HIGH",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 3.9,
+       "impactScore": 5.2
+      }
+     ]
+    },
+    "weaknesses": [
+     {
+      "source": "security@wordfence.com",
+      "type": "Primary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-434"
+       }
+      ]
+     }
+    ],
+    "references": [
+     {
+      "url": "https://github.com/RensTillmann/super-forms/pull/205",
+      "source": "security@wordfence.com"
+     },
+     {
+      "url": "https://www.wordfence.com/threat-intel/vulnerabilities/id/f21577b4-b7c6-4b39-b2b7-66a75c5f56fb?source=cve",
+      "source": "security@wordfence.com"
+     }
+    ]
+   }
+  },
+  {
+   "cve": {
+    "id": "CVE-2026-107699",
+    "sourceIdentifier": "disclosure@vulncheck.com",
+    "published": "2026-10-08T19:17:01.853",
+    "lastModified": "2026-10-08T21:35:53.890",
+    "vulnStatus": "Deferred",
+    "cveTags": [],
+    "descriptions": [
+     {
+      "lang": "en",
+      "value": "ppt2png through 0.0.6 contains an OS command injection vulnerability that allows attackers to execute operating system commands by supplying unsanitized input or output path arguments. Attackers can append shell metacharacters such as ';' to file names passed to child_process.exec() in ppt2png.js, running commands with Node.js process privileges."
+     }
+    ],
+    "affected": [
+     {
+      "source": "disclosure@vulncheck.com",
+      "affectedData": [
+       {
+        "vendor": "tzwm",
+        "product": "ppt2png",
+        "defaultStatus": "unaffected",
+        "collectionURL": "https://www.npmjs.com/package/ppt2png",
+        "repo": "https://github.com/tzwm/ppt2png",
+        "packageURL": "pkg:npm/ppt2png",
+        "versions": [
+         {
+          "version": "0",
+          "lessThanOrEqual": "0.0.6",
+          "versionType": "semver",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "metrics": {
+     "cvssMetricV40": [
+      {
+       "source": "disclosure@vulncheck.com",
+       "type": "Secondary",
+       "cvssData": {
+        "version": "4.0",
+        "vectorString": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N/E:X/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
+        "baseScore": 9.3,
+        "baseSeverity": "CRITICAL",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "attackRequirements": "NONE",
+        "privilegesRequired": "NONE",
+        "userInteraction": "NONE",
+        "vulnConfidentialityImpact": "HIGH",
+        "vulnIntegrityImpact": "HIGH",
+        "vulnAvailabilityImpact": "HIGH",
+        "subConfidentialityImpact": "NONE",
+        "subIntegrityImpact": "NONE",
+        "subAvailabilityImpact": "NONE",
+        "exploitMaturity": "NOT_DEFINED",
+        "confidentialityRequirement": "NOT_DEFINED",
+        "integrityRequirement": "NOT_DEFINED",
+        "availabilityRequirement": "NOT_DEFINED",
+        "modifiedAttackVector": "NOT_DEFINED",
+        "modifiedAttackComplexity": "NOT_DEFINED",
+        "modifiedAttackRequirements": "NOT_DEFINED",
+        "modifiedPrivilegesRequired": "NOT_DEFINED",
+        "modifiedUserInteraction": "NOT_DEFINED",
+        "modifiedVulnConfidentialityImpact": "NOT_DEFINED",
+        "modifiedVulnIntegrityImpact": "NOT_DEFINED",
+        "modifiedVulnAvailabilityImpact": "NOT_DEFINED",
+        "modifiedSubConfidentialityImpact": "NOT_DEFINED",
+        "modifiedSubIntegrityImpact": "NOT_DEFINED",
+        "modifiedSubAvailabilityImpact": "NOT_DEFINED",
+        "Safety": "NOT_DEFINED",
+        "Automatable": "NOT_DEFINED",
+        "Recovery": "NOT_DEFINED",
+        "valueDensity": "NOT_DEFINED",
+        "vulnerabilityResponseEffort": "NOT_DEFINED",
+        "providerUrgency": "NOT_DEFINED"
+       }
+      }
+     ],
+     "cvssMetricV31": [
+      {
+       "source": "disclosure@vulncheck.com",
+       "type": "Primary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+        "baseScore": 9.8,
+        "baseSeverity": "CRITICAL",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "NONE",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "HIGH",
+        "integrityImpact": "HIGH",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 3.9,
+       "impactScore": 5.9
+      }
+     ]
+    },
+    "weaknesses": [
+     {
+      "source": "disclosure@vulncheck.com",
+      "type": "Primary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-78"
+       }
+      ]
+     }
+    ],
+    "references": [
+     {
+      "url": "https://gist.github.com/R3tro16/2daadc08b282c48d41203d1125d7632a",
+      "source": "disclosure@vulncheck.com"
+     },
+     {
+      "url": "https://github.com/tzwm/ppt2png",
+      "source": "disclosure@vulncheck.com"
+     },
+     {
+      "url": "https://github.com/tzwm/ppt2png/blob/8c68eba7af943de27422b12c6e224d28587af7ae/ppt2png.js#L5-L35",
+      "source": "disclosure@vulncheck.com"
+     },
+     {
+      "url": "https://www.vulncheck.com/advisories/ppt2png-through-0.0.6-os-command-injection-via-input-and-output-paths",
+      "source": "disclosure@vulncheck.com"
+     }
+    ]
+   }
+  },
+  {
+   "cve": {
+    "id": "CVE-2026-104075",
+    "sourceIdentifier": "disclosure@vulncheck.com",
+    "published": "2026-10-08T20:17:29.377",
+    "lastModified": "2026-10-08T21:35:53.890",
+    "vulnStatus": "Deferred",
+    "cveTags": [],
+    "descriptions": [
+     {
+      "lang": "en",
+      "value": "TVU Networks Receiver/Transceiver devices running firmware before version 7.9 contain an authentication bypass vulnerability in the web management login endpoint POST /tvu/Login that allows remote unauthenticated attackers to obtain an administrative session by submitting an empty or absent UserName parameter. Attackers can send a crafted HTTP request directly, bypassing client-side JavaScript validation, to receive a valid session cookie regardless of the password value and gain full administrative control of the device's web management interface."
+     }
+    ],
+    "affected": [
+     {
+      "source": "disclosure@vulncheck.com",
+      "affectedData": [
+       {
+        "vendor": "TVU Networks",
+        "product": "TVU Receiver / Transceiver",
+        "defaultStatus": "unaffected",
+        "versions": [
+         {
+          "version": "0",
+          "lessThan": "7.9",
+          "versionType": "custom",
+          "status": "affected"
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "metrics": {
+     "cvssMetricV40": [
+      {
+       "source": "disclosure@vulncheck.com",
+       "type": "Secondary",
+       "cvssData": {
+        "version": "4.0",
+        "vectorString": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N/E:X/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
+        "baseScore": 9.3,
+        "baseSeverity": "CRITICAL",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "attackRequirements": "NONE",
+        "privilegesRequired": "NONE",
+        "userInteraction": "NONE",
+        "vulnConfidentialityImpact": "HIGH",
+        "vulnIntegrityImpact": "HIGH",
+        "vulnAvailabilityImpact": "HIGH",
+        "subConfidentialityImpact": "NONE",
+        "subIntegrityImpact": "NONE",
+        "subAvailabilityImpact": "NONE",
+        "exploitMaturity": "NOT_DEFINED",
+        "confidentialityRequirement": "NOT_DEFINED",
+        "integrityRequirement": "NOT_DEFINED",
+        "availabilityRequirement": "NOT_DEFINED",
+        "modifiedAttackVector": "NOT_DEFINED",
+        "modifiedAttackComplexity": "NOT_DEFINED",
+        "modifiedAttackRequirements": "NOT_DEFINED",
+        "modifiedPrivilegesRequired": "NOT_DEFINED",
+        "modifiedUserInteraction": "NOT_DEFINED",
+        "modifiedVulnConfidentialityImpact": "NOT_DEFINED",
+        "modifiedVulnIntegrityImpact": "NOT_DEFINED",
+        "modifiedVulnAvailabilityImpact": "NOT_DEFINED",
+        "modifiedSubConfidentialityImpact": "NOT_DEFINED",
+        "modifiedSubIntegrityImpact": "NOT_DEFINED",
+        "modifiedSubAvailabilityImpact": "NOT_DEFINED",
+        "Safety": "NOT_DEFINED",
+        "Automatable": "NOT_DEFINED",
+        "Recovery": "NOT_DEFINED",
+        "valueDensity": "NOT_DEFINED",
+        "vulnerabilityResponseEffort": "NOT_DEFINED",
+        "providerUrgency": "NOT_DEFINED"
+       }
+      }
+     ],
+     "cvssMetricV31": [
+      {
+       "source": "disclosure@vulncheck.com",
+       "type": "Primary",
+       "cvssData": {
+        "version": "3.1",
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+        "baseScore": 9.8,
+        "baseSeverity": "CRITICAL",
+        "attackVector": "NETWORK",
+        "attackComplexity": "LOW",
+        "privilegesRequired": "NONE",
+        "userInteraction": "NONE",
+        "scope": "UNCHANGED",
+        "confidentialityImpact": "HIGH",
+        "integrityImpact": "HIGH",
+        "availabilityImpact": "HIGH"
+       },
+       "exploitabilityScore": 3.9,
+       "impactScore": 5.9
+      }
+     ]
+    },
+    "weaknesses": [
+     {
+      "source": "disclosure@vulncheck.com",
+      "type": "Primary",
+      "description": [
+       {
+        "lang": "en",
+        "value": "CWE-288"
+       }
+      ]
+     }
+    ],
+    "references": [
+     {
+      "url": "https://code-white.com/public-vulnerability-list/#authentication-bypass-in-tvu-receiver-transceiver-web-management-interface",
+      "source": "disclosure@vulncheck.com"
+     },
+     {
+      "url": "https://www.vulncheck.com/advisories/tvu-networks-receiver-transceiver-authentication-bypass-via-tvu-login",
+      "source": "disclosure@vulncheck.com"
+     }
+    ]
+   }
+  }
+ ]
+}

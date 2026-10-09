@@ -4,11 +4,10 @@ import logging
 
 from fastapi import FastAPI
 
-from app.auth import models as auth_models  # noqa: F401  (registers the table)
 from app.auth.rate_limit import LoginRateLimiter
 from app.auth.routes import router as auth_router
 from app.config import Settings, get_settings
-from app.db import Base, make_engine, make_session_factory
+from app.db import make_engine, make_session_factory, run_migrations
 from app.modules_registry import register_modules
 
 
@@ -23,7 +22,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.engine = engine
     app.state.session_factory = make_session_factory(engine)
     app.state.login_limiter = LoginRateLimiter()
-    Base.metadata.create_all(engine)
+    run_migrations(engine)
 
     app.include_router(auth_router)
     register_modules(app)
