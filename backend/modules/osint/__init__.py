@@ -1,13 +1,9 @@
-"""OSINT module (placeholder until its own step)."""
-
-from fastapi import APIRouter
+"""OSINT about the owner only: breaches, web mentions, accounts, public profiles."""
 
 from app.modules_registry import ModuleInfo
+from modules.osint.collector import collect
+from modules.osint.routes import router
 
 MODULE = ModuleInfo(id="osint", title="OSINT", order=3)
-router = APIRouter()
 
-
-@router.get("/status")
-def status() -> dict[str, str]:
-    return {"status": "not_implemented"}
+__all__ = ["MODULE", "collect", "router"]
