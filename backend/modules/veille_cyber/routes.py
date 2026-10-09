@@ -13,6 +13,8 @@ from modules.veille_cyber.models import Digest, ProductSheet, Vulnerability
 
 router = APIRouter()
 
+STALE_AFTER = timedelta(hours=36)  # daily collection + margin
+
 
 class RunOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -26,6 +28,7 @@ class RunOut(BaseModel):
 class StatusOut(BaseModel):
     last_run: RunOut | None
     last_success_at: datetime | None
+    stale: bool  # no successful collection for more than 36 h
     llm_enabled: bool
     skills_file_found: bool
     llm_cost_month_usd: float
@@ -96,9 +99,11 @@ def status(db: DbSession, settings: AppSettings) -> StatusOut:
         run_out = RunOut.model_validate(last_run)
         run_out.started_at = _utc(run_out.started_at)
         run_out.finished_at = _utc(run_out.finished_at)
+    last_success_at = _utc(last_ok.started_at) if last_ok else None
     return StatusOut(
         last_run=run_out,
-        last_success_at=_utc(last_ok.started_at) if last_ok else None,
+        last_success_at=last_success_at,
+        stale=last_success_at is None or datetime.now(UTC) - last_success_at > STALE_AFTER,
         llm_enabled=settings.anthropic_api_key is not None,
         skills_file_found=settings.skills_file.is_file(),
         llm_cost_month_usd=round(cost or 0.0, 4),

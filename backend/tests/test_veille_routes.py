@@ -42,6 +42,7 @@ def test_empty_state(client):
     login(client)
     status = client.get(f"{BASE}/status").json()
     assert status["last_run"] is None
+    assert status["stale"] is True
     assert status["llm_enabled"] is False
     assert status["llm_cost_month_usd"] == 0
     assert client.get(f"{BASE}/digest/latest").json() is None

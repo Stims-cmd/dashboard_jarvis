@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import { api, UnauthorizedError } from '../api'
 
 const BASE = '/api/modules/veille_cyber'
-const STALE_AFTER_HOURS = 36
 
 interface Status {
   last_run: { started_at: string; status: string; summary: string | null } | null
   last_success_at: string | null
+  stale: boolean
   llm_enabled: boolean
   skills_file_found: boolean
   llm_cost_month_usd: number
@@ -44,7 +44,7 @@ const dateTime = (iso: string) =>
 
 function StatusLine({ status }: { status: Status }) {
   const last = status.last_success_at
-  const stale = !last || Date.now() - new Date(last).getTime() > STALE_AFTER_HOURS * 3600_000
+  const stale = status.stale
   return (
     <div className="vc-status">
       <span className={stale ? 'warning' : undefined}>
