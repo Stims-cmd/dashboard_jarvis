@@ -9,6 +9,7 @@ from app.auth.rate_limit import LoginRateLimiter
 from app.auth.routes import router as auth_router
 from app.config import Settings, get_settings
 from app.db import Base, make_engine, make_session_factory
+from app.modules_registry import register_modules
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -25,6 +26,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     Base.metadata.create_all(engine)
 
     app.include_router(auth_router)
+    register_modules(app)
 
     @app.get("/api/health")
     def health() -> dict[str, str]:
