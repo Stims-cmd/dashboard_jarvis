@@ -1,0 +1,15 @@
+# Weekly collection of the OSINT module.
+# Install on the server (see README, "Planification"):
+#   sudo cp deploy/systemd/jarvis-osint.* /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now jarvis-osint.timer
+[Unit]
+Description=Jarvis - OSINT collection
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Path of the repository on the server.
+WorkingDirectory=/opt/jarvis
+ExecStart=/usr/bin/docker compose run --rm --no-deps backend python -m app.collect osint

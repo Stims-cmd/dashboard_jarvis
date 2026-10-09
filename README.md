@@ -106,6 +106,25 @@ Suivi manuel des comptes (Livret A, Livret Jeune, compte courant, compte pro) : 
 
 Aucun numéro de compte, IBAN ou identifiant bancaire n'est stocké : chaque compte n'a qu'un libellé. Les journaux du serveur ne contiennent aucun montant.
 
+## Module OSINT
+
+Surveillance hebdomadaire de **ta propre** exposition publique, et de personne d'autre :
+
+- **Fuites de données** : ton e-mail est vérifié auprès de [XposedOrNot](https://xposedornot.com) (API gratuite).
+- **Profil Gravatar** : seul un hash SHA-256 de l'e-mail est envoyé.
+- **Pseudos** : existence de comptes via les API publiques de GitHub, GitLab, Codeberg, Keybase, Hacker News et Chess.com.
+- **Mentions** : nom et numéro de téléphone recherchés en expression exacte via l'[API Brave Search](https://brave.com/search/api/) (clé `JARVIS_BRAVE_API_KEY`, optionnelle).
+
+Le rapport de la semaine liste uniquement les nouveautés ; l'historique complet reste consultable. Aucun scraping, aucun appel à Claude : les données OSINT ne quittent le serveur que vers les services interrogés ci-dessus.
+
+Configuration : copier `data/osint.example.toml` en `data/osint.toml` (non commité) et y mettre tes identifiants. La base ne stocke que des étiquettes (« e-mail perso », « téléphone mobile ») et les pseudos ; les journaux ne contiennent aucun identifiant.
+
+```sh
+docker compose -f docker-compose.dev.yml run --rm backend python -m app.collect osint
+```
+
+Sur le serveur : `deploy/systemd/jarvis-osint.service` et `.timer` (chaque lundi à 7h), installés comme ceux de la veille cyber.
+
 ## Sécurité
 
 - `.env` n'est jamais commité ; `.env.example` documente chaque variable.

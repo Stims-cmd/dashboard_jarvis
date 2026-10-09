@@ -71,7 +71,7 @@ Tout passe par Docker (aucun outil local requis hormis Docker). Depuis la racine
 - Tests backend : `docker compose -f docker-compose.dev.yml run --rm backend pytest`
 - Lint backend : `docker compose -f docker-compose.dev.yml run --rm backend sh -c "ruff check && ruff format --check"`
 - Lint + build frontend : `docker compose -f docker-compose.dev.yml run --rm frontend sh -c "npm run lint && npm run build"` (linter : oxlint, fourni par le gabarit Vite)
-- Lancer un collecteur : `docker compose -f docker-compose.dev.yml run --rm backend python -m app.collect <module>` (ex. `veille_cyber`)
+- Lancer un collecteur : `docker compose -f docker-compose.dev.yml run --rm backend python -m app.collect <module>` (`veille_cyber`, `osint`)
 - Nouvelle migration après modification des modèles : `docker compose -f docker-compose.dev.yml run --rm backend alembic revision --autogenerate -m "..."` (relire le fichier généré)
 - Stack de déploiement : `docker compose up -d --build` → http://127.0.0.1:8080 (port modifiable via `JARVIS_HTTP_PORT`)
 

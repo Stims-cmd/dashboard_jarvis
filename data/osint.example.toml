@@ -1,0 +1,22 @@
+# Copy to data/osint.toml (never committed) and replace with YOUR OWN identifiers only:
+# this module monitors the owner of the dashboard, nobody else.
+#
+# Labels are what the database and the window show; raw emails and phone numbers
+# stay in data/osint.toml.
+
+# Exact name searched on the web (Brave Search API, needs JARVIS_BRAVE_API_KEY).
+names = ["Camille Exemple"]
+
+# Usernames checked on GitHub, GitLab, Codeberg, Keybase, Hacker News, Chess.com.
+# Letters, digits, ".", "_" and "-" only.
+usernames = ["camexemple"]
+
+# Emails checked against known data breaches (XposedOrNot) and Gravatar (hash only).
+[[emails]]
+label = "perso"
+value = "camille.exemple@example.org"
+
+# Phone numbers searched on the web (Brave), as "06 .." and "+336..".
+[[phones]]
+label = "mobile"
+value = "+33 6 00 00 00 01"

@@ -11,6 +11,7 @@
 data/*
 !data/.gitkeep
 !data/skills.example.md
+!data/osint.example.toml
 
 # Python
 __pycache__/
