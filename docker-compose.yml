@@ -1,0 +1,30 @@
+# Deployment stack. Only nginx is published, and only on the loopback interface:
+# remote access will go through Tailscale, never through a public port.
+services:
+  backend:
+    image: jarvis-backend:prod
+    build:
+      context: ./backend
+      target: prod
+    env_file: .env
+    environment:
+      JARVIS_DATABASE_URL: sqlite:////data/jarvis.db
+      # The backend is only reachable from nginx on the internal network.
+      FORWARDED_ALLOW_IPS: "*"
+    volumes:
+      - jarvis-data:/data
+    restart: unless-stopped
+
+  frontend:
+    image: jarvis-frontend:prod
+    build:
+      context: ./frontend
+      target: prod
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:${JARVIS_HTTP_PORT:-8080}:80"
+    restart: unless-stopped
+
+volumes:
+  jarvis-data:
