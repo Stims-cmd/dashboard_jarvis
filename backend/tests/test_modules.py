@@ -10,7 +10,7 @@ EXPECTED = [
 
 def test_modules_require_session(client):
     assert client.get("/api/modules").status_code == 401
-    assert client.get("/api/modules/finances/status").status_code == 401
+    assert client.get("/api/modules/osint/status").status_code == 401
 
 
 def test_modules_listed_in_order(client):
@@ -20,6 +20,11 @@ def test_modules_listed_in_order(client):
 
 def test_module_routes_mounted(client):
     login(client)
-    for module in EXPECTED:
-        response = client.get(f"/api/modules/{module['id']}/status")
-        assert response.status_code == 200
+    # One read-only route per module: 200 proves the router is mounted under its prefix.
+    for path in (
+        "/api/modules/veille_cyber/status",
+        "/api/modules/finances/overview",
+        "/api/modules/osint/status",
+        "/api/modules/leboncoin/status",
+    ):
+        assert client.get(path).status_code == 200, path
