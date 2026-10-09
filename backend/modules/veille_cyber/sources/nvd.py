@@ -85,12 +85,12 @@ class NvdClient:
         self,
         http: httpx2.Client,
         api_key: str | None = None,
-        sleep: Callable[[float], None] = time.sleep,
+        sleep: Callable[[float], None] | None = None,
     ):
         self._http = http
         self._headers = {"apiKey": api_key} if api_key else {}
         self._delay = DELAY_WITH_KEY if api_key else DELAY_WITHOUT_KEY
-        self._sleep = sleep
+        self._sleep = sleep or time.sleep
         self._requests = 0
 
     def _get(self, params: dict) -> dict:
