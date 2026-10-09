@@ -1,0 +1,22 @@
+{
+ "type": "search",
+ "query": {
+  "original": "\"Camille Exemple\""
+ },
+ "web": {
+  "type": "search",
+  "results": [
+   {
+    "title": "Camille Exemple - Profil",
+    "url": "https://example.org/profil/camille-exemple",
+    "description": "Page de <strong>Camille Exemple</strong>",
+    "age": "2 days ago"
+   },
+   {
+    "title": "Résultats tournoi",
+    "url": "https://example.net/tournoi-2026",
+    "description": "Classement : <strong>Camille Exemple</strong> 3e"
+   }
+  ]
+ }
+}

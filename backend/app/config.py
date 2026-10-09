@@ -24,8 +24,11 @@ class Settings(BaseSettings):
     nvd_api_key: SecretStr | None = None
     # List of software the owner already knows (one "- name" per line).
     skills_file: Path = Path("/config/skills.md")
+    # OSINT: identifiers to watch (never committed) and Brave Search key (optional).
+    osint_file: Path = Path("/config/osint.toml")
+    brave_api_key: SecretStr | None = None
 
-    @field_validator("anthropic_api_key", "nvd_api_key", mode="before")
+    @field_validator("anthropic_api_key", "nvd_api_key", "brave_api_key", mode="before")
     @classmethod
     def empty_means_missing(cls, value: object) -> object:
         # "ANTHROPIC_API_KEY=" left empty in .env must not count as a key.
