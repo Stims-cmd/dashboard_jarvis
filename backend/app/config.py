@@ -1,8 +1,9 @@
 """Application settings, read from environment variables (see .env.example)."""
 
 from functools import lru_cache
+from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,6 +16,14 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///data/jarvis.db"
     cookie_secure: bool = True
     session_hours: int = Field(default=8, ge=1, le=24 * 7)
+
+    # Claude API (optional): summaries are skipped when the key is missing.
+    anthropic_api_key: SecretStr | None = Field(default=None, validation_alias="ANTHROPIC_API_KEY")
+    llm_model: str = "claude-haiku-5-5"
+    # NVD API key (optional): raises the NVD rate limit from 5 to 50 requests / 30 s.
+    nvd_api_key: SecretStr | None = None
+    # List of software the owner already knows (one "- name" per line).
+    skills_file: Path = Path("/config/skills.md")
 
 
 @lru_cache
