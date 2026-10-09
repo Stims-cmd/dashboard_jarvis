@@ -2,6 +2,7 @@
 # Code is mounted into the containers and reloaded on change.
 services:
   backend:
+    image: jarvis-backend:dev
     build:
       context: ./backend
       target: dev
@@ -17,6 +18,7 @@ services:
       - "127.0.0.1:8000:8000"
 
   frontend:
+    image: jarvis-frontend:dev
     build:
       context: ./frontend
       target: dev

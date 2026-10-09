@@ -2,6 +2,7 @@
 # remote access will go through Tailscale, never through a public port.
 services:
   backend:
+    image: jarvis-backend:prod
     build:
       context: ./backend
       target: prod
@@ -15,6 +16,7 @@ services:
     restart: unless-stopped
 
   frontend:
+    image: jarvis-frontend:prod
     build:
       context: ./frontend
       target: prod

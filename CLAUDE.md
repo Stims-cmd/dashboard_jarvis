@@ -64,11 +64,14 @@ Projet mis de côté : comparateur d'assurances.
 - Si une API, une version de bibliothèque ou une règle externe est incertaine, vérifie la documentation officielle avant de coder.
 - En cas de doute sur un choix d'architecture, pose la question plutôt que de décider seul.
 
-## Commandes (à compléter après l'étape 0)
-- Lancer le backend : à définir.
-- Lancer le frontend : à définir.
-- Tests : à définir.
-- Lint : à définir.
+## Commandes
+Tout passe par Docker (aucun outil local requis hormis Docker). Depuis la racine du dépôt :
+- Lancer en dev (backend + frontend, rechargement auto) : `docker compose -f docker-compose.dev.yml up --build` → http://localhost:5173
+- Générer le hash du mot de passe : `docker compose -f docker-compose.dev.yml run --rm backend python -m app.hash_password`
+- Tests backend : `docker compose -f docker-compose.dev.yml run --rm backend pytest`
+- Lint backend : `docker compose -f docker-compose.dev.yml run --rm backend sh -c "ruff check && ruff format --check"`
+- Lint + build frontend : `docker compose -f docker-compose.dev.yml run --rm frontend sh -c "npm run lint && npm run build"` (linter : oxlint, fourni par le gabarit Vite)
+- Stack de déploiement : `docker compose up -d --build` → http://127.0.0.1:8080 (port modifiable via `JARVIS_HTTP_PORT`)
 
 ## Définition de « terminé » pour l'étape 0
 - Le dépôt s'installe et se lance en local avec une seule commande documentée.
