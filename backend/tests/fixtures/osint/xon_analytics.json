@@ -1,0 +1,62 @@
+{
+ "BreachMetrics": null,
+ "BreachesSummary": {
+  "site": "McKesson;ManchesterAirportsGroup;Sharecare"
+ },
+ "ExposedBreaches": {
+  "breaches_details": [
+   {
+    "breach": "McKesson",
+    "details": "McKesson, a healthcare and pharmaceutical company, was targeted by the ShinyHunters group in August 2026, with data later published online exposing 6.8M unique email addresses along with other personal and corporate information relating to patients, staff, healthcare provider contacts, and marketing recipients.",
+    "domain": "mckesson.com",
+    "industry": "Pharmaceutical",
+    "logo": "https://xposedornot.com/static/logos/Mckesson.png",
+    "password_risk": "unknown",
+    "references": "",
+    "searchable": "Yes",
+    "verified": "Yes",
+    "xposed_data": "Email addresses;Names;Phone numbers;Physical addresses;Dates of birth;Genders",
+    "xposed_date": "2026",
+    "xposed_records": 6832822,
+    "added": "2026-10-02T12:15:46+00:00"
+   },
+   {
+    "breach": "ManchesterAirportsGroup",
+    "details": "Manchester Airports Group (MAG), an airport operator, was compromised in August 2026, with data later published by the FulcrumSec group exposing email addresses and phone numbers relating to 8.4M customers along with vehicle registrations, parking history, Fast Track purchases, and lounge bookings.",
+    "domain": "magairports.com",
+    "industry": "Transport",
+    "logo": "https://xposedornot.com/static/logos/ManchesterAirportsGroup.png",
+    "password_risk": "unknown",
+    "references": "",
+    "searchable": "Yes",
+    "verified": "Yes",
+    "xposed_data": "Email addresses;Names;Phone numbers;IP addresses;Vehicle registration numbers;Geographic locations;Browser user agents",
+    "xposed_date": "2026",
+    "xposed_records": 8379476,
+    "added": "2026-09-03T07:41:36+00:00"
+   },
+   {
+    "breach": "Sharecare",
+    "details": "Sharecare, a digital health company, was compromised in August 2026, exposing 326k unique email addresses along with names, phone numbers, titles, geographic locations, physical addresses, and internal corporate data from more than 3.4M Salesforce records.",
+    "domain": "sharecare.com",
+    "industry": "Health Care",
+    "logo": "https://xposedornot.com/static/logos/ShareCare.png",
+    "password_risk": "unknown",
+    "references": "",
+    "searchable": "Yes",
+    "verified": "Yes",
+    "xposed_data": "Email addresses;Names;Phone numbers;Titles;Geographic locations;Physical addresses;",
+    "xposed_date": "2026",
+    "xposed_records": 326356,
+    "added": "2026-08-31T10:56:34+00:00"
+   }
+  ]
+ },
+ "ExposedPastes": null,
+ "PasteMetrics": null,
+ "PastesSummary": {
+  "cnt": 0,
+  "domain": "",
+  "tmpstmp": ""
+ }
+}

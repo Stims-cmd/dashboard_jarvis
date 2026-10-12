@@ -14,6 +14,8 @@ from app.modules_registry import register_modules
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    # httpx2 logs every URL at INFO, and some contain personal identifiers (OSINT).
+    logging.getLogger("httpx2").setLevel(logging.WARNING)
 
     # Interactive docs are disabled: the API is private and only used by the dashboard.
     app = FastAPI(title="Jarvis", docs_url=None, redoc_url=None, openapi_url=None)

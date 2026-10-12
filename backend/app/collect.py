@@ -74,6 +74,8 @@ def run_collector(
 
 def main(argv: list[str]) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    # httpx2 logs every URL at INFO, and some contain personal identifiers (OSINT).
+    logging.getLogger("httpx2").setLevel(logging.WARNING)
     if len(argv) != 2:
         print("Usage: python -m app.collect <module_id>", file=sys.stderr)
         return 2

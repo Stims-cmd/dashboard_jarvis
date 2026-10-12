@@ -1,0 +1,11 @@
+[Unit]
+Description=Jarvis - OSINT collection, every Monday
+
+[Timer]
+OnCalendar=Mon *-*-* 07:00:00 Europe/Paris
+# Catch up after a reboot if the Monday run was missed.
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target
