@@ -130,13 +130,52 @@ button {
   overflow: hidden;
 }
 
+.window-frame {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
 .window-title {
-  padding: 0.45rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.4rem 0.3rem 0.75rem;
   border-bottom: 1px solid var(--border);
-  font-size: 0.9rem;
-  font-weight: 600;
   cursor: move;
   user-select: none;
+}
+
+.window-title h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.window-controls {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.window-controls button {
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.6rem;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.window-maximized .window-title {
+  cursor: default;
+}
+
+.window-minimized {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .window-body {
