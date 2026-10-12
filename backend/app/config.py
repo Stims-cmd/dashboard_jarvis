@@ -27,8 +27,22 @@ class Settings(BaseSettings):
     # OSINT: identifiers to watch (never committed) and Brave Search key (optional).
     osint_file: Path = Path("/config/osint.toml")
     brave_api_key: SecretStr | None = None
+    # Leboncoin: dedicated mailbox receiving the saved-search alerts, read over IMAP.
+    lbc_imap_host: str | None = None
+    lbc_imap_port: int = Field(default=993, ge=1, le=65535)
+    lbc_imap_username: str | None = None
+    lbc_imap_password: SecretStr | None = None
+    lbc_imap_folder: str = "INBOX"
 
-    @field_validator("anthropic_api_key", "nvd_api_key", "brave_api_key", mode="before")
+    @field_validator(
+        "anthropic_api_key",
+        "nvd_api_key",
+        "brave_api_key",
+        "lbc_imap_host",
+        "lbc_imap_username",
+        "lbc_imap_password",
+        mode="before",
+    )
     @classmethod
     def empty_means_missing(cls, value: object) -> object:
         # "ANTHROPIC_API_KEY=" left empty in .env must not count as a key.
