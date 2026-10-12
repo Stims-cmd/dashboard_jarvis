@@ -1,0 +1,11 @@
+[Unit]
+Description=Jarvis - Leboncoin alerts collection, every hour
+
+[Timer]
+OnCalendar=hourly
+# Catch up after a reboot if a run was missed.
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

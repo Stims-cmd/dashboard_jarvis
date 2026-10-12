@@ -1,0 +1,15 @@
+# Hourly reading of the Leboncoin alert emails.
+# Install on the server (see README, "Planification"):
+#   sudo cp deploy/systemd/jarvis-leboncoin.* /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now jarvis-leboncoin.timer
+[Unit]
+Description=Jarvis - Leboncoin alerts collection
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Path of the repository on the server.
+WorkingDirectory=/opt/jarvis
+ExecStart=/usr/bin/docker compose run --rm --no-deps backend python -m app.collect leboncoin
