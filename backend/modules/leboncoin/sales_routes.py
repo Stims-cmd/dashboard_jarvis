@@ -5,14 +5,16 @@ Logs record actions and ids only, never prices nor texts.
 """
 
 import logging
+import re
 from datetime import UTC, date, datetime
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 
-from app.deps import DbSession
+from app.deps import AppSettings, DbSession
+from app.llm import LlmClient
 from modules.leboncoin import sales
 from modules.leboncoin.models import Ad, Item
 
@@ -22,6 +24,24 @@ router = APIRouter(prefix="/items")
 MAX_CENTS = 10_000_000  # 100 000 €
 MAX_KEYWORDS = 5
 COMPARABLES_SHOWN = 10
+
+DRAFT_SYSTEM = """Tu rédiges des annonces Leboncoin en français pour un particulier.
+Règles :
+- utilise uniquement les informations fournies, n'invente aucune caractéristique ;
+- ton simple et honnête, mentionne clairement les défauts indiqués ;
+- pas d'emoji, pas de majuscules criardes, aucune coordonnée ;
+- ne répète pas le prix dans la description.
+Réponds exactement au format suivant, sans rien d'autre :
+TITRE: <titre de 70 caractères maximum>
+
+<description de 4 à 12 lignes>"""
+
+
+def get_llm(db: DbSession, settings: AppSettings) -> LlmClient:
+    return LlmClient(settings, db)
+
+
+Llm = Annotated[LlmClient, Depends(get_llm)]
 
 
 class ItemIn(BaseModel):
@@ -212,3 +232,45 @@ def comparables(item_id: int, db: DbSession) -> ComparablesOut:
             for a in found[:COMPARABLES_SHOWN]
         ],
     )
+
+
+def draft_prompt(item: Item) -> str:
+    """Only the item description, with contact details removed: nothing personal."""
+    notes = sales.redact(item.notes).strip() or "(aucune)"
+    return (
+        f"Objet : {sales.redact(item.title)}\n"
+        f"État : {sales.CONDITION_LABELS.get(item.condition, item.condition)}\n"
+        f"Prix demandé : {sales.euros(item.asking_price_cents)}\n"
+        f"Notes du vendeur :\n{notes}"
+    )
+
+
+def parse_draft(text: str) -> tuple[str, str] | None:
+    """(title, body) from Claude's answer, or None if it does not follow the format."""
+    head, _, body = text.strip().partition("\n")
+    match = re.match(r"titre\s*:\s*(.*)$", head.strip(), re.IGNORECASE)
+    if match is None or not match.group(1).strip() or not body.strip():
+        return None
+    return match.group(1).strip()[:100], body.strip()
+
+
+@router.post("/{item_id}/draft")
+def write_draft(item_id: int, db: DbSession, llm: Llm) -> ItemOut:
+    """Prepares the ad text. The owner reviews, copies and publishes it: Jarvis never does."""
+    item = _get_or_404(db, item_id)
+    draft = None
+    if llm.enabled:
+        answer = llm.complete("leboncoin.draft", DRAFT_SYSTEM, draft_prompt(item), max_tokens=1500)
+        draft = parse_draft(answer) if answer else None
+    if draft is not None:
+        item.draft_source = "claude"
+    else:
+        draft = sales.template_draft(
+            item.title, item.condition, item.notes, item.asking_price_cents
+        )
+        item.draft_source = "template"
+    item.draft_title, item.draft_body = draft
+    item.updated_at = datetime.now(UTC)
+    db.commit()
+    logger.info("leboncoin: draft for item %d (%s)", item.id, item.draft_source)
+    return _out(item)

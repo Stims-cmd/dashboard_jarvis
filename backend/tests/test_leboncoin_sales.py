@@ -1,9 +1,13 @@
 """Sale assistant tests (Leboncoin module). No network. Data is fictitious."""
 
 from datetime import UTC, date, datetime, timedelta
+from types import SimpleNamespace
 
 import pytest
+from sqlalchemy import select
 
+from app.core_models import LlmCall
+from app.llm import LlmClient
 from modules.leboncoin.sales import (
     comparables_stats,
     euros,
@@ -12,6 +16,7 @@ from modules.leboncoin.sales import (
     suggested_price_cents,
     template_draft,
 )
+from modules.leboncoin.sales_routes import get_llm, parse_draft
 from tests.test_auth import login
 
 BASE = "/api/modules/leboncoin/items"
@@ -232,3 +237,79 @@ def test_comparables_without_keywords(client):
     item = client.post(BASE, json=BIKE | {"keywords": " "}).json()
     assert client.get(f"{BASE}/{item['id']}/comparables").json()["count"] == 0
     assert client.get(f"{BASE}/999/comparables").status_code == 404
+
+
+# --- Draft ------------------------------------------------------------------
+
+
+class FakeMessages:
+    """Stands for the Anthropic client (same shape as in test_llm.py)."""
+
+    def __init__(self, text: str, stop_reason: str = "end_turn"):
+        self.text = text
+        self.stop_reason = stop_reason
+        self.calls: list[dict] = []
+
+    def create(self, **kwargs):
+        self.calls.append(kwargs)
+        return SimpleNamespace(
+            stop_reason=self.stop_reason,
+            usage=SimpleNamespace(input_tokens=300, output_tokens=150),
+            content=[SimpleNamespace(type="text", text=self.text)],
+        )
+
+
+def use_fake_claude(client, settings, messages: FakeMessages) -> None:
+    def fake_llm():
+        with client.app.state.session_factory() as db:
+            yield LlmClient(settings, db, client=SimpleNamespace(messages=messages))
+
+    client.app.dependency_overrides[get_llm] = fake_llm
+
+
+def test_draft_without_key_uses_template(client):
+    login(client)
+    item = client.post(BASE, json=BIKE).json()
+    drafted = client.post(f"{BASE}/{item['id']}/draft").json()
+    assert drafted["draft_source"] == "template"
+    assert drafted["draft_title"] == BIKE["title"]
+    assert "Antivol fourni." in drafted["draft_body"]
+
+
+def test_draft_with_claude_sends_nothing_personal(client, settings):
+    messages = FakeMessages("TITRE: Vélo de ville en bon état\n\nVélo 28 pouces.\nAntivol fourni.")
+    use_fake_claude(client, settings, messages)
+    login(client)
+    notes = "Rayures. Appelez le 06 00 00 00 01 ou camille.exemple@example.org"
+    item = client.post(BASE, json=BIKE | {"notes": notes}).json()
+
+    drafted = client.post(f"{BASE}/{item['id']}/draft").json()
+    assert drafted["draft_source"] == "claude"
+    assert drafted["draft_title"] == "Vélo de ville en bon état"
+    assert drafted["draft_body"] == "Vélo 28 pouces.\nAntivol fourni."
+
+    sent = messages.calls[0]["messages"][0]["content"]
+    assert "Rayures." in sent
+    assert "06 00 00 00 01" not in sent
+    assert "camille.exemple" not in sent
+    with client.app.state.session_factory() as db:
+        call = db.scalars(select(LlmCall)).one()
+    assert call.purpose == "leboncoin.draft"
+
+
+@pytest.mark.parametrize(
+    ("text", "stop_reason"),
+    [("Je ne peux pas.", "refusal"), ("Voici une annonce sans le bon format.", "end_turn")],
+)
+def test_draft_falls_back_to_template(client, settings, text, stop_reason):
+    use_fake_claude(client, settings, FakeMessages(text, stop_reason))
+    login(client)
+    item = client.post(BASE, json=BIKE).json()
+    assert client.post(f"{BASE}/{item['id']}/draft").json()["draft_source"] == "template"
+
+
+def test_parse_draft():
+    assert parse_draft("TITRE: Vélo\n\nTexte") == ("Vélo", "Texte")
+    assert parse_draft("Titre : Vélo\nTexte") == ("Vélo", "Texte")  # French spacing
+    assert parse_draft("titre : x") is None  # no body
+    assert parse_draft("TITRE:\n\nTexte") is None  # empty title
