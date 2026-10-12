@@ -14,12 +14,14 @@ from sqlalchemy import select
 
 from app.deps import DbSession
 from modules.leboncoin import sales
-from modules.leboncoin.models import Item
+from modules.leboncoin.models import Ad, Item
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/items")
 
 MAX_CENTS = 10_000_000  # 100 000 €
+MAX_KEYWORDS = 5
+COMPARABLES_SHOWN = 10
 
 
 class ItemIn(BaseModel):
@@ -66,6 +68,23 @@ class ItemOut(BaseModel):
     draft_source: str | None
     reminder: ReminderOut | None
     updated_at: datetime
+
+
+class ComparableOut(BaseModel):
+    title: str
+    price_cents: int | None
+    location: str
+    url: str
+    first_seen_at: datetime
+
+
+class ComparablesOut(BaseModel):
+    keywords: list[str]
+    count: int
+    min_cents: int | None
+    median_cents: int | None
+    max_cents: int | None
+    ads: list[ComparableOut]
 
 
 def _today() -> date:
@@ -157,3 +176,39 @@ def delete_item(item_id: int, db: DbSession) -> Response:
     db.commit()
     logger.info("leboncoin: item %d deleted", item_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def _like_escape(word: str) -> str:
+    """The word is matched literally: % and _ are not wildcards."""
+    return word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+@router.get("/{item_id}/comparables")
+def comparables(item_id: int, db: DbSession) -> ComparablesOut:
+    """Ads collected from the alerts whose title contains every keyword of the item."""
+    item = _get_or_404(db, item_id)
+    words = [w for w in item.keywords.lower().split() if len(w) >= 2][:MAX_KEYWORDS]
+    if not words:
+        return ComparablesOut(keywords=[], **sales.comparables_stats([]).__dict__, ads=[])
+    query = select(Ad)
+    # Parameterized LIKE. SQLite ignores case for ASCII letters only: "VÉLO" != "vélo".
+    for word in words:
+        query = query.where(Ad.title.ilike(f"%{_like_escape(word)}%", escape="\\"))
+    found = db.scalars(query.order_by(Ad.first_seen_at.desc())).all()
+    stats = sales.comparables_stats([a.price_cents for a in found if a.price_cents is not None])
+    return ComparablesOut(
+        keywords=words,
+        **stats.__dict__,
+        ads=[
+            ComparableOut(
+                title=a.title,
+                price_cents=a.price_cents,
+                location=a.location,
+                url=a.url,
+                first_seen_at=a.first_seen_at.replace(tzinfo=UTC)
+                if a.first_seen_at.tzinfo is None
+                else a.first_seen_at,
+            )
+            for a in found[:COMPARABLES_SHOWN]
+        ],
+    )

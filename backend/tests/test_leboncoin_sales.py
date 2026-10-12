@@ -173,3 +173,62 @@ def test_listing_date_defaults_to_today(client):
 def test_invalid_items_are_refused(client, change):
     login(client)
     assert client.post(BASE, json=BIKE | change).status_code == 422
+
+
+# --- Comparables ------------------------------------------------------------
+
+
+def add_ads(client, ads: list[tuple[str, int | None]]):
+    from modules.leboncoin.models import Ad
+
+    now = datetime.now(UTC)
+    with client.app.state.session_factory() as db:
+        for number, (title, price) in enumerate(ads):
+            db.add(
+                Ad(
+                    ad_id=str(2849000000 + number),
+                    search_name="vélos",
+                    title=title,
+                    price_cents=price,
+                    location="Lyon",
+                    url=f"https://www.leboncoin.fr/ad/velos/{2849000000 + number}",
+                    price_history=[],
+                    first_seen_at=now - timedelta(minutes=number),
+                    last_seen_at=now,
+                )
+            )
+        db.commit()
+
+
+def test_comparables(client):
+    add_ads(
+        client,
+        [
+            ("Vélo de VILLE femme", 12000),
+            ("vélo ville Peugeot", 18000),
+            ("Vélo ville", None),  # no price: listed, but not in the stats
+            ("Vélo de course", 40000),  # missing "ville"
+            ("Trottinette ville", 9000),
+        ],
+    )
+    login(client)
+    item = client.post(BASE, json=BIKE).json()
+    result = client.get(f"{BASE}/{item['id']}/comparables").json()
+    assert result["keywords"] == ["vélo", "ville"]
+    assert len(result["ads"]) == 3
+    assert (result["count"], result["min_cents"], result["median_cents"]) == (2, 12000, 15000)
+
+
+def test_comparables_keywords_are_literal(client):
+    add_ads(client, [("Vélo 100 ans", 5000), ("Vélo 100% neuf", 8000)])
+    login(client)
+    item = client.post(BASE, json=BIKE | {"keywords": "100%"}).json()
+    result = client.get(f"{BASE}/{item['id']}/comparables").json()
+    assert [a["title"] for a in result["ads"]] == ["Vélo 100% neuf"]
+
+
+def test_comparables_without_keywords(client):
+    login(client)
+    item = client.post(BASE, json=BIKE | {"keywords": " "}).json()
+    assert client.get(f"{BASE}/{item['id']}/comparables").json()["count"] == 0
+    assert client.get(f"{BASE}/999/comparables").status_code == 404
