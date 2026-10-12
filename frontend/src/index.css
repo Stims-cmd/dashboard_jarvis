@@ -322,3 +322,65 @@ code {
   cursor: pointer;
   text-decoration: underline;
 }
+
+/* Leboncoin window */
+.lbc-tabs {
+  display: flex;
+  gap: 0.3rem;
+  margin-bottom: 0.6rem;
+}
+
+.lbc-tabs button {
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.lbc-tabs button[aria-selected='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.lbc-form textarea {
+  flex-basis: 100%;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.lbc-form input[type='number'] {
+  width: 4.5rem;
+}
+
+.lbc-reminder {
+  margin-top: 0.25rem;
+  font-size: 0.82rem;
+  color: var(--error);
+}
+
+.lbc-draft {
+  margin: 0.4rem 0;
+  padding: 0.4rem 0.5rem;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+}
+
+.lbc-draft-body {
+  margin: 0.3rem 0;
+  white-space: pre-wrap;
+  font-size: 0.85rem;
+}
+
+.lbc-actions {
+  display: flex;
+  gap: 0.8rem;
+  margin-top: 0.2rem;
+}
