@@ -150,6 +150,14 @@ docker compose -f docker-compose.dev.yml run --rm backend python -m app.collect 
 
 Sur le serveur : `deploy/systemd/jarvis-leboncoin.service` et `.timer` (toutes les heures), installés comme ceux de la veille cyber.
 
+### Aide à la vente (onglet « Mes ventes »)
+
+Pour chaque objet à vendre : état, détails, prix demandé et prix plancher, statut (en préparation, en vente, vendu, retiré). **Jarvis ne publie rien et n'envoie aucun message** : il prépare, tu relis, copies et publies toi-même.
+
+- **Brouillon d'annonce** : rédigé par Claude (petit modèle, appel journalisé dans `llm_calls`) si `ANTHROPIC_API_KEY` est définie, sinon par un gabarit simple. Seuls l'objet, l'état, le prix et les détails sont envoyés ; les e-mails, numéros de téléphone et IBAN éventuellement tapés dans les détails sont retirés avant l'envoi. N'y mets quand même pas tes coordonnées.
+- **Annonces comparables** : annonces déjà collectées par les alertes dont le titre contient tous les mots-clés de l'objet, avec la médiane et la fourchette de prix. Vide tant que la lecture des alertes n'est pas branchée.
+- **Rappel de baisse** : si l'objet est en vente depuis N jours (14 par défaut) sans changement de prix, la fenêtre propose une baisse de 10 %, jamais sous le prix plancher. « J'ai baissé le prix » enregistre la baisse une fois faite sur Leboncoin.
+
 ## Sécurité
 
 - `.env` n'est jamais commité ; `.env.example` documente chaque variable.
