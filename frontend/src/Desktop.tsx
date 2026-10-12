@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { api, UnauthorizedError, type ModuleInfo } from './api'
 import { iconOf } from './components/moduleIcons'
+import ThemeToggle from './components/ThemeToggle'
 import Window from './components/Window'
 import type { Size } from './desktop/layout'
 import Taskbar from './desktop/Taskbar'
@@ -59,6 +60,7 @@ function Session({ modules, onLogout }: { modules: ModuleInfo[]; onLogout: () =>
         onWindowClick={manager.taskbarClick}
         onArrange={manager.arrange}
         onLogout={onLogout}
+        extra={<ThemeToggle className="taskbar-icon" />}
       />
     </div>
   )
