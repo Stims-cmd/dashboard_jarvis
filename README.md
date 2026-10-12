@@ -125,6 +125,26 @@ docker compose -f docker-compose.dev.yml run --rm backend python -m app.collect 
 
 Sur le serveur : `deploy/systemd/jarvis-osint.service` et `.timer` (chaque lundi à 7h), installés comme ceux de la veille cyber.
 
+## Module Leboncoin
+
+Liste les annonces reçues par les **alertes e-mail de tes recherches sauvegardées** sur Leboncoin, sans doublons, avec l'historique des prix. C'est la seule source : aucun scraping, aucune requête vers leboncoin.fr, aucune image chargée.
+
+Mise en place :
+
+1. Créer une adresse e-mail **dédiée** aux alertes (pas ta boîte principale), activer l'IMAP et générer un mot de passe d'application.
+2. Dans Leboncoin, envoyer les alertes des recherches sauvegardées vers cette adresse.
+3. Renseigner `JARVIS_LBC_IMAP_*` dans `.env` (voir `.env.example`).
+
+Toutes les heures, le collecteur lit en IMAP (TLS, dossier ouvert **en lecture seule** : rien n'est marqué lu, déplacé ni supprimé) les e-mails des 14 derniers jours qu'il n'a pas encore traités. Un e-mail n'est accepté que si ton fournisseur a vérifié sa signature DKIM pour `leboncoin.fr` et que l'expéditeur est bien Leboncoin : une fausse alerte envoyée à la boîte est ignorée. La base ne garde que les données publiques des annonces (titre, prix, lieu, lien), jamais le contenu des e-mails ; les journaux ne contiennent que des compteurs.
+
+> L'extraction des annonces depuis le HTML des alertes n'est pas encore écrite : elle attend de vrais e-mails d'exemple. D'ici là, les alertes sont comptées en `parse_errors` et seront relues automatiquement une fois le parseur prêt.
+
+```sh
+docker compose -f docker-compose.dev.yml run --rm backend python -m app.collect leboncoin
+```
+
+Sur le serveur : `deploy/systemd/jarvis-leboncoin.service` et `.timer` (toutes les heures), installés comme ceux de la veille cyber.
+
 ## Sécurité
 
 - `.env` n'est jamais commité ; `.env.example` documente chaque variable.
