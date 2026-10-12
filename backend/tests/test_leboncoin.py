@@ -240,6 +240,21 @@ def test_subdomain_signature_is_accepted():
     assert is_authentic(message_from_bytes(raw, policy=policy.default))
 
 
+@pytest.mark.parametrize(
+    ("results", "expected"),
+    [
+        # Layout written by Gmail: no header.d, the identity is in header.i.
+        ("mx.google.com; dkim=pass header.i=@leboncoin.fr header.s=s1 header.b=AbC1", True),
+        ("mx.google.com; dkim=pass header.i=alertes@mail.leboncoin.fr header.s=s1", True),
+        ("mx.google.com; dkim=pass header.i=@evil.com; spf=pass smtp.mailfrom=leboncoin.fr", False),
+        ("mx.google.com; dkim=fail header.i=@leboncoin.fr header.s=s1", False),
+    ],
+)
+def test_gmail_authentication_results(results, expected):
+    raw = alert_email(results=(results,))
+    assert is_authentic(message_from_bytes(raw, policy=policy.default)) is expected
+
+
 # --- Collector --------------------------------------------------------------
 
 

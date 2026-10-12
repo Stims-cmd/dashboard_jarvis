@@ -137,7 +137,12 @@ Mise en place :
 
 Toutes les heures, le collecteur lit en IMAP (TLS, dossier ouvert **en lecture seule** : rien n'est marqué lu, déplacé ni supprimé) les e-mails des 14 derniers jours qu'il n'a pas encore traités. Un e-mail n'est accepté que si ton fournisseur a vérifié sa signature DKIM pour `leboncoin.fr` et que l'expéditeur est bien Leboncoin : une fausse alerte envoyée à la boîte est ignorée. La base ne garde que les données publiques des annonces (titre, prix, lieu, lien), jamais le contenu des e-mails ; les journaux ne contiennent que des compteurs.
 
-> L'extraction des annonces depuis le HTML des alertes n'est pas encore écrite : elle attend de vrais e-mails d'exemple. D'ici là, les alertes sont comptées en `parse_errors` et seront relues automatiquement une fois le parseur prêt.
+> **En pause (branche `feat/leboncoin`, non fusionnée).** L'extraction des annonces depuis le HTML des alertes (`extract_ads` dans `backend/modules/leboncoin/parser.py`) n'est pas encore écrite : elle attend de vrais e-mails d'exemple. D'ici là, les alertes sont comptées en `parse_errors` et seront relues automatiquement une fois le parseur prêt (si elles ont moins de 14 jours).
+>
+> Pour reprendre :
+> 1. Boîte Gmail dédiée : validation en deux étapes active, puis mot de passe d'application sur myaccount.google.com/apppasswords. Mettre `JARVIS_LBC_IMAP_HOST=imap.gmail.com` et les identifiants dans `.env`.
+> 2. Faire arriver les alertes dans cette boîte, de préférence par un filtre de transfert depuis la boîte du compte Leboncoin, pour que la boîte dédiée ne reçoive pas les e-mails de réinitialisation du mot de passe.
+> 3. Déposer 2 ou 3 alertes réelles en `.eml` dans `data/` (Gmail : ⋮ → Télécharger le message), puis écrire `extract_ads` et ses tests à partir de ces exemples anonymisés.
 
 ```sh
 docker compose -f docker-compose.dev.yml run --rm backend python -m app.collect leboncoin

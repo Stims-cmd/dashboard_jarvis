@@ -13,7 +13,11 @@ from email.utils import parsedate_to_datetime
 
 TRUSTED_DOMAIN = "leboncoin.fr"
 # "dkim=pass ... header.d=leboncoin.fr" inside an Authentication-Results header.
-_DKIM_PASS = re.compile(r"\bdkim=pass\b[^;]*?\bheader\.d=([A-Za-z0-9.-]+)", re.IGNORECASE)
+# Gmail writes "header.i=@leboncoin.fr" instead (the signing identity, which must be
+# the signing domain or one of its subdomains): both forms are read.
+_DKIM_PASS = re.compile(
+    r"\bdkim=pass\b[^;]*?\bheader\.[di]=(?:[^@\s;]*@)?([A-Za-z0-9.-]+)", re.IGNORECASE
+)
 
 
 @dataclass(frozen=True)
