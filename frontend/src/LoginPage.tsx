@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { api, UnauthorizedError } from './api'
+import { ReactorLogo } from './components/icons'
+import ThemeToggle from './components/ThemeToggle'
 
 export default function LoginPage({ onLoggedIn }: { onLoggedIn: () => void }) {
   const [username, setUsername] = useState('')
@@ -23,26 +25,37 @@ export default function LoginPage({ onLoggedIn }: { onLoggedIn: () => void }) {
   }
 
   return (
-    <form className="login" onSubmit={handleSubmit}>
-      <h1>Jarvis</h1>
-      <label>
-        Utilisateur
-        <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required />
-      </label>
-      <label>
-        Mot de passe
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          required
-        />
-      </label>
-      {error && <p className="error" role="alert">{error}</p>}
-      <button type="submit" disabled={pending}>
-        {pending ? 'Connexion…' : 'Se connecter'}
-      </button>
-    </form>
+    <main className="login-screen">
+      <form className="login" onSubmit={handleSubmit}>
+        <ThemeToggle className="login-theme" />
+        <div className="login-brand">
+          <ReactorLogo size={64} spinning />
+          <h1>JARVIS</h1>
+          <p className="login-subtitle">Accès sécurisé</p>
+        </div>
+        <label>
+          Utilisateur
+          <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required />
+        </label>
+        <label>
+          Mot de passe
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            required
+          />
+        </label>
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        <button type="submit" disabled={pending}>
+          {pending ? 'Connexion…' : 'Se connecter'}
+        </button>
+      </form>
+    </main>
   )
 }

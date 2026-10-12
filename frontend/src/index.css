@@ -194,41 +194,6 @@ code {
   color: var(--warn);
 }
 
-/* --- Login --------------------------------------------------------------- */
-
-.login {
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-  width: min(320px, calc(100% - 32px));
-  margin: 18vh auto 0;
-  padding: 1.5rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.login h1 {
-  margin: 0;
-  font-size: 1.4rem;
-}
-
-.login label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.login input {
-  padding: 0.45rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--input-bg);
-  color: var(--text);
-}
-
 /* --- Desktop ------------------------------------------------------------- */
 
 .desktop {
@@ -610,24 +575,68 @@ code {
   }
 }
 
-/* Veille cyber window */
-.vc h3 {
-  margin: 0.9rem 0 0.4rem;
-  font-size: 0.95rem;
+/* --- Window contents: shared pieces -------------------------------------- */
+
+.vc h3,
+.fin h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0 0.5rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
+.vc h3::after,
+.fin h3::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border-strong), transparent);
+}
+
+.vc > h3:first-of-type,
+.fin section:first-of-type h3 {
+  margin-top: 0.6rem;
+}
+
+/* Status line: small chips */
 .vc-status {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem 1rem;
-  font-size: 0.8rem;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.75rem;
   color: var(--muted);
+}
+
+.vc-status > * {
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.vc-status .warning {
+  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
 }
 
 .vc-digest {
   white-space: pre-wrap;
   font-size: 0.9rem;
-  line-height: 1.45;
+  line-height: 1.55;
+}
+
+.vc > .vc-digest {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--accent);
+  border-radius: 8px;
+  background: var(--surface-2);
 }
 
 .vc-list {
@@ -637,73 +646,164 @@ code {
 }
 
 .vc-item {
-  padding: 0.5rem 0;
+  padding: 0.6rem 0.2rem;
   border-top: 1px solid var(--border);
+}
+
+.vc-item:first-child {
+  border-top: none;
 }
 
 .vc-item-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   font-weight: 600;
   font-size: 0.9rem;
 }
 
-.vc-item-head a {
-  color: var(--accent);
+.vc a,
+.fin a {
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+
+.vc a:hover,
+.fin a:hover {
+  text-decoration: underline;
 }
 
 .vc-item-product {
+  margin-top: 0.1rem;
   font-size: 0.8rem;
   color: var(--muted);
 }
 
 .vc-item-desc {
-  margin: 0.2rem 0 0;
+  margin: 0.3rem 0 0;
   font-size: 0.85rem;
+  line-height: 1.45;
 }
 
 .badge {
-  padding: 0.05rem 0.4rem;
-  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  padding: 0.08rem 0.5rem;
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 500;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .badge-danger {
-  border-color: var(--error);
+  border-color: color-mix(in srgb, var(--error) 55%, transparent);
+  background: color-mix(in srgb, var(--error) 12%, transparent);
   color: var(--error);
 }
 
-.vc-sheet {
-  margin: 0.3rem 0;
+.vc-sheet,
+.fin details {
+  margin: 0.4rem 0;
 }
 
-.vc-sheet summary {
+.vc-sheet summary,
+.fin details summary {
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  color: var(--accent-strong);
+}
+
+.vc-sheet[open] > .vc-digest {
+  margin-top: 0.4rem;
+  padding: 0.6rem 0.8rem;
+  border-left: 2px solid var(--accent);
+  background: var(--surface-2);
+  border-radius: 0 8px 8px 0;
 }
 
 .disclaimer {
-  margin: 0.8rem 0 0;
-  font-size: 0.75rem;
+  margin: 1rem 0 0;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--border);
+  font-size: 0.72rem;
   color: var(--muted);
 }
 
-/* Finances window */
+.link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-strong);
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.link-button:hover:not(:disabled) {
+  color: var(--accent-strong);
+  text-decoration: underline;
+}
+
+/* Forms inside windows */
+.fin-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 0.85rem;
+}
+
+.fin-form input,
+.fin-form select,
+.fin-form textarea,
+.vc select {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text);
+  max-width: 100%;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.fin-form input:focus,
+.fin-form select:focus,
+.fin-form textarea:focus,
+.vc select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.fin-form button[type='submit'] {
+  padding: 0.35rem 1rem;
+}
+
+/* --- Finances ------------------------------------------------------------ */
+
 .fin section {
   margin-bottom: 0.9rem;
 }
 
-.fin h3 {
-  margin: 0.6rem 0 0.4rem;
-  font-size: 0.95rem;
-}
-
 .fin-disclaimer {
   margin-top: 0;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
+  color: var(--text);
 }
 
 .fin-list {
@@ -713,20 +813,29 @@ code {
 }
 
 .fin-account {
-  padding: 0.45rem 0;
+  padding: 0.55rem 0.2rem;
   border-top: 1px solid var(--border);
+}
+
+.fin-account:first-child {
+  border-top: none;
 }
 
 .fin-row {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 0.5rem;
   font-size: 0.9rem;
 }
 
 .fin-amount {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--accent-strong);
 }
 
 .fin-meta {
@@ -735,77 +844,67 @@ code {
 }
 
 .fin progress {
+  appearance: none;
   width: 100%;
-  max-width: 220px;
+  max-width: 240px;
+  height: 6px;
+  margin: 0.3rem 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
   vertical-align: middle;
 }
 
-.fin details summary {
-  cursor: pointer;
-  font-size: 0.8rem;
-  color: var(--accent);
+.fin progress::-webkit-progress-bar {
+  background: var(--surface-2);
+  border-radius: 999px;
 }
 
-.fin-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.4rem;
-  font-size: 0.85rem;
+.fin progress::-webkit-progress-value {
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  border-radius: 999px;
 }
 
-.fin-form input,
-.fin-form select {
-  padding: 0.3rem 0.45rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--text);
-  max-width: 100%;
+.fin progress::-moz-progress-bar {
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  border-radius: 999px;
 }
 
-.link-button {
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--accent);
-  font-size: inherit;
-  cursor: pointer;
-  text-decoration: underline;
-}
+/* --- Leboncoin ----------------------------------------------------------- */
 
-/* Leboncoin window */
 .lbc-tabs {
-  display: flex;
-  gap: 0.3rem;
-  margin-bottom: 0.6rem;
+  display: inline-flex;
+  gap: 0.2rem;
+  margin-bottom: 0.7rem;
+  padding: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-2);
 }
 
 .lbc-tabs button {
-  padding: 0.25rem 0.7rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 0.85rem;
-  cursor: pointer;
+  padding: 0.3rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
 }
 
 .lbc-tabs button[aria-selected='true'] {
-  border-color: var(--accent);
-  color: var(--accent);
-  font-weight: 600;
+  border-color: var(--border-strong);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
 }
 
 .lbc-form textarea {
   flex-basis: 100%;
-  padding: 0.3rem 0.45rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--text);
   font: inherit;
+  resize: vertical;
 }
 
 .lbc-form input[type='number'] {
@@ -813,26 +912,150 @@ code {
 }
 
 .lbc-reminder {
-  margin-top: 0.25rem;
+  margin-top: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--warn) 9%, transparent);
   font-size: 0.82rem;
-  color: var(--error);
+  color: var(--warn);
 }
 
 .lbc-draft {
-  margin: 0.4rem 0;
-  padding: 0.4rem 0.5rem;
-  border: 1px dashed var(--border);
-  border-radius: 6px;
+  margin: 0.5rem 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface-2);
 }
 
 .lbc-draft-body {
-  margin: 0.3rem 0;
+  margin: 0.35rem 0;
   white-space: pre-wrap;
-  font-size: 0.85rem;
+  font-size: 0.86rem;
+  line-height: 1.5;
 }
 
 .lbc-actions {
   display: flex;
-  gap: 0.8rem;
-  margin-top: 0.2rem;
+  gap: 0.9rem;
+  margin-top: 0.3rem;
+}
+
+/* --- Login --------------------------------------------------------------- */
+
+.login-screen {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 16px;
+}
+
+.login {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(360px, 100%);
+  padding: 2rem 1.75rem 1.75rem;
+  overflow: hidden;
+  background: var(--surface);
+  backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  box-shadow: var(--shadow), var(--glow);
+}
+
+/* Slow scanning line */
+.login::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -30%;
+  height: 30%;
+  background: linear-gradient(180deg, transparent, var(--accent-soft), transparent);
+  animation: login-scan 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes login-scan {
+  to {
+    top: 100%;
+  }
+}
+
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--accent);
+}
+
+.login h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 700;
+  letter-spacing: 0.4em;
+  /* letter-spacing adds space after the last letter too: compensate to stay centred */
+  margin-right: -0.4em;
+}
+
+.login-subtitle {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.login label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.login input {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.login input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.login button[type='submit'] {
+  margin-top: 0.3rem;
+  padding: 0.6rem;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.login-theme {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
 }
