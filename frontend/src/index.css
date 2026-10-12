@@ -106,12 +106,40 @@ button {
 
 .taskbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0.4rem 1rem;
+  gap: 0.75rem;
+  padding: 0.3rem 0.75rem;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  font-weight: 600;
+  border-top: 1px solid var(--border);
+}
+
+.taskbar-brand,
+.taskbar-tray,
+.taskbar-windows,
+.taskbar-window,
+.taskbar-clock {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.taskbar-windows {
+  flex: 1;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.taskbar-clock {
+  flex-direction: column;
+  gap: 0;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.taskbar-window.is-active {
+  border-color: var(--accent);
 }
 
 .workspace {

@@ -3,6 +3,7 @@ import { api, UnauthorizedError, type ModuleInfo } from './api'
 import { iconOf } from './components/moduleIcons'
 import Window from './components/Window'
 import type { Size } from './desktop/layout'
+import Taskbar from './desktop/Taskbar'
 import { useWindowManager } from './desktop/useWindowManager'
 import { windowComponents } from './windows'
 
@@ -30,12 +31,6 @@ function Session({ modules, onLogout }: { modules: ModuleInfo[]; onLogout: () =>
 
   return (
     <div className="desktop">
-      <header className="taskbar">
-        <span>Jarvis</span>
-        <button type="button" onClick={onLogout}>
-          Déconnexion
-        </button>
-      </header>
       <main className="workspace" ref={workspace}>
         {manager.ready &&
           manager.windows.map((win) => {
@@ -58,6 +53,13 @@ function Session({ modules, onLogout }: { modules: ModuleInfo[]; onLogout: () =>
             )
           })}
       </main>
+      <Taskbar
+        modules={modules}
+        windows={manager.windows}
+        onWindowClick={manager.taskbarClick}
+        onArrange={manager.arrange}
+        onLogout={onLogout}
+      />
     </div>
   )
 }
