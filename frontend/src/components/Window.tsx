@@ -1,60 +1,73 @@
 import type { ReactNode } from 'react'
 import { Rnd } from 'react-rnd'
-
-export interface WindowLayout {
-  x: number
-  y: number
-  width: number
-  height: number
-}
+import { MIN_HEIGHT, MIN_WIDTH, type Rect } from '../desktop/layout'
+import type { ManagedWindow } from '../desktop/useWindowManager'
+import { MaximizeIcon, MinimizeIcon, RestoreIcon } from './icons'
 
 interface WindowProps {
-  id: string
   title: string
-  defaultLayout: WindowLayout
-  zIndex: number
+  icon?: ReactNode
+  window: ManagedWindow
   onFocus: () => void
+  onMove: (rect: Rect) => void
+  onMinimize: () => void
+  onToggleMaximize: () => void
   children: ReactNode
 }
 
-// Window positions are a per-browser convenience: storage may be unavailable, so never fail on it.
-function loadLayout(id: string, fallback: WindowLayout): WindowLayout {
-  try {
-    const saved = localStorage.getItem(`jarvis.window.${id}`)
-    return saved ? { ...fallback, ...(JSON.parse(saved) as WindowLayout) } : fallback
-  } catch {
-    return fallback
-  }
-}
-
-function saveLayout(id: string, layout: WindowLayout) {
-  try {
-    localStorage.setItem(`jarvis.window.${id}`, JSON.stringify(layout))
-  } catch {
-    // ignore
-  }
-}
-
-export default function Window({ id, title, defaultLayout, zIndex, onFocus, children }: WindowProps) {
-  const initial = loadLayout(id, defaultLayout)
+// Controlled window: its position, size and state come from the window manager (Desktop).
+export default function Window({
+  title,
+  icon,
+  window: win,
+  onFocus,
+  onMove,
+  onMinimize,
+  onToggleMaximize,
+  children,
+}: WindowProps) {
+  const { minimized, maximized } = win.state
+  const classes = ['window', win.active && 'window-active', minimized && 'window-minimized', maximized && 'window-maximized']
 
   return (
     <Rnd
-      className="window"
-      default={initial}
-      minWidth={240}
-      minHeight={140}
+      className={classes.filter(Boolean).join(' ')}
+      position={{ x: win.rect.x, y: win.rect.y }}
+      size={{ width: win.rect.width, height: win.rect.height }}
+      minWidth={MIN_WIDTH}
+      minHeight={MIN_HEIGHT}
       bounds="parent"
       dragHandleClassName="window-title"
-      style={{ zIndex }}
+      cancel=".window-controls"
+      disableDragging={maximized}
+      enableResizing={!maximized && !minimized}
+      style={{ zIndex: win.zIndex }}
       onMouseDown={onFocus}
-      onDragStop={(_e, d) => saveLayout(id, { ...loadLayout(id, initial), x: d.x, y: d.y })}
+      onDragStop={(_e, d) => onMove({ ...win.rect, x: d.x, y: d.y })}
       onResizeStop={(_e, _dir, ref, _delta, position) =>
-        saveLayout(id, { width: ref.offsetWidth, height: ref.offsetHeight, ...position })
+        onMove({ width: ref.offsetWidth, height: ref.offsetHeight, ...position })
       }
     >
-      <div className="window-title">{title}</div>
-      <div className="window-body">{children}</div>
+      <section className="window-frame" aria-label={title} inert={minimized}>
+        <header className="window-title" onDoubleClick={onToggleMaximize}>
+          {icon && <span className="window-icon">{icon}</span>}
+          <h2>{title}</h2>
+          <div className="window-controls">
+            <button type="button" aria-label="Réduire" title="Réduire" onClick={onMinimize}>
+              <MinimizeIcon />
+            </button>
+            <button
+              type="button"
+              aria-label={maximized ? 'Restaurer' : 'Agrandir'}
+              title={maximized ? 'Restaurer' : 'Agrandir'}
+              onClick={onToggleMaximize}
+            >
+              {maximized ? <RestoreIcon /> : <MaximizeIcon />}
+            </button>
+          </div>
+        </header>
+        <div className="window-body">{children}</div>
+      </section>
     </Rnd>
   )
 }
