@@ -9,7 +9,7 @@ Langue : réponds et commente en français. Le code, les noms de variables et le
 
 ## Stack
 - Backend : Python 3.12+, FastAPI, SQLite (SQLAlchemy ou sqlite3 standard, à valider en plan mode).
-- Frontend : React + Vite, interface en fenêtres déplaçables. Le style visuel sera défini plus tard : reste sobre.
+- Frontend : React + Vite, interface en fenêtres déplaçables avec barre des tâches en bas (réduire, agrandir, organiser). Style visuel validé : « HUD Jarvis » (verre dépoli, accents cyan, police Rajdhani empaquetée), thèmes clair et sombre ; toutes les couleurs passent par les variables CSS de `frontend/src/index.css`. Aucune ressource externe (police, icônes) chargée depuis Internet.
 - Déploiement : Docker Compose sur un petit VPS. Accès uniquement via réseau privé (Tailscale ou équivalent) avec authentification applicative en plus. Aucun port applicatif exposé sur Internet.
 - Développement : en local d'abord. Le déploiement cloud vient après les étapes 0 et 1.
 
