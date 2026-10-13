@@ -43,6 +43,12 @@ docker compose -f docker-compose.dev.yml up --build
 
 Ouvrir http://localhost:5173 et se connecter. Le code est monté dans les conteneurs : toute modification recharge le backend ou le frontend automatiquement.
 
+Après un ajout ou une mise à jour de dépendance frontend (`package.json`), ajouter `-V` (`--renew-anon-volumes`) : sinon le conteneur garde son ancien `node_modules` et Vite affiche « Failed to resolve import ».
+
+```sh
+docker compose -f docker-compose.dev.yml up --build -V
+```
+
 ## Tests et lint
 
 ```sh
