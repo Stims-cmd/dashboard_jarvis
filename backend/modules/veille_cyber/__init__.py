@@ -1,4 +1,4 @@
-"""Veille cyber: daily watch of exploited and critical vulnerabilities."""
+"""Veille cyber: news about recent cyberattacks (CERT-FR, French press), summarized daily."""
 
 from app.modules_registry import ModuleInfo
 from modules.veille_cyber.collector import collect

@@ -8,12 +8,13 @@ from sqlalchemy import func, select
 
 from app.core_models import CollectorRun, LlmCall
 from app.deps import AppSettings, DbSession
-from modules.veille_cyber.digest import priority
-from modules.veille_cyber.models import Digest, ProductSheet, Vulnerability
+from modules.veille_cyber.collector import day_articles
+from modules.veille_cyber.models import Article, Digest
+from modules.veille_cyber.sources.feeds import FEEDS
 
 router = APIRouter()
 
-STALE_AFTER = timedelta(hours=36)  # daily collection + margin
+STALE_AFTER = timedelta(hours=18)  # two collections a day + margin
 
 
 class RunOut(BaseModel):
@@ -25,48 +26,37 @@ class RunOut(BaseModel):
     summary: str | None
 
 
+class SourceOut(BaseModel):
+    id: str
+    label: str
+    status: str | None  # ok | error, None before the first collection
+
+
 class StatusOut(BaseModel):
     last_run: RunOut | None
     last_success_at: datetime | None
-    stale: bool  # no successful collection for more than 36 h
+    stale: bool  # no successful collection for more than 18 h
     llm_enabled: bool
-    skills_file_found: bool
     llm_cost_month_usd: float
+    sources: list[SourceOut]
 
 
-class VulnerabilityOut(BaseModel):
+class ArticleOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    cve_id: str
-    vendor: str | None
-    product: str | None
-    title: str | None
-    description: str
-    published: datetime | None
-    cvss_score: float | None
-    cvss_severity: str | None
-    cvss_version: str | None
-    epss: float | None
-    epss_percentile: float | None
-    in_kev: bool
-    kev_date_added: date | None
-    kev_due_date: date | None
-    ransomware: bool
+    id: int
+    source: str
+    link: str
+    title: str
+    summary: str
+    published_at: datetime | None
+    first_seen_at: datetime
 
 
 class DigestOut(BaseModel):
     day: date
     text: str | None
-    vulnerabilities: list[VulnerabilityOut]
-
-
-class SheetOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    vendor: str | None
-    product: str
-    text: str
-    created_at: datetime
+    articles: list[ArticleOut]
 
 
 def _utc(value: datetime | None) -> datetime | None:
@@ -74,11 +64,11 @@ def _utc(value: datetime | None) -> datetime | None:
     return value.replace(tzinfo=UTC) if value and value.tzinfo is None else value
 
 
-def _vulnerabilities(db: DbSession, cve_ids: list[str]) -> list[Vulnerability]:
-    if not cve_ids:
-        return []
-    found = db.scalars(select(Vulnerability).where(Vulnerability.cve_id.in_(cve_ids)))
-    return sorted(found, key=priority)
+def _out(article: Article) -> ArticleOut:
+    out = ArticleOut.model_validate(article)
+    out.published_at = _utc(out.published_at)
+    out.first_seen_at = _utc(out.first_seen_at)
+    return out
 
 
 @router.get("/status")
@@ -99,14 +89,16 @@ def status(db: DbSession, settings: AppSettings) -> StatusOut:
         run_out = RunOut.model_validate(last_run)
         run_out.started_at = _utc(run_out.started_at)
         run_out.finished_at = _utc(run_out.finished_at)
+    last_digest = db.scalars(select(Digest).order_by(Digest.day.desc()).limit(1)).first()
+    statuses = last_digest.sources if last_digest else {}
     last_success_at = _utc(last_ok.started_at) if last_ok else None
     return StatusOut(
         last_run=run_out,
         last_success_at=last_success_at,
         stale=last_success_at is None or datetime.now(UTC) - last_success_at > STALE_AFTER,
         llm_enabled=settings.anthropic_api_key is not None,
-        skills_file_found=settings.skills_file.is_file(),
         llm_cost_month_usd=round(cost or 0.0, 4),
+        sources=[SourceOut(id=f.id, label=f.label, status=statuses.get(f.id)) for f in FEEDS],
     )
 
 
@@ -115,24 +107,24 @@ def latest_digest(db: DbSession) -> DigestOut | None:
     digest = db.scalars(select(Digest).order_by(Digest.day.desc()).limit(1)).first()
     if digest is None:
         return None
-    return DigestOut(
-        day=digest.day,
-        text=digest.text,
-        vulnerabilities=_vulnerabilities(db, digest.cve_ids),
+    articles = [_out(a) for a in day_articles(db, digest.article_ids)]
+    return DigestOut(day=digest.day, text=digest.text, articles=articles)
+
+
+@router.get("/articles")
+def articles(
+    db: DbSession,
+    days: int = Query(default=7, ge=1, le=90),
+    source: str | None = Query(default=None, max_length=50),
+) -> list[ArticleOut]:
+    """Articles first seen in the last `days` days, most recent first."""
+    since = datetime.now(UTC) - timedelta(days=days)
+    query = (
+        select(Article)
+        .where(Article.first_seen_at >= since)
+        .order_by(func.coalesce(Article.published_at, Article.first_seen_at).desc(), Article.id)
+        .limit(300)
     )
-
-
-@router.get("/vulnerabilities")
-def recent_vulnerabilities(
-    db: DbSession, days: int = Query(default=7, ge=1, le=90)
-) -> list[VulnerabilityOut]:
-    since = datetime.now(UTC).date() - timedelta(days=days - 1)
-    digests = db.scalars(select(Digest).where(Digest.day >= since))
-    cve_ids = list(dict.fromkeys(cve_id for d in digests for cve_id in d.cve_ids))
-    return _vulnerabilities(db, cve_ids)
-
-
-@router.get("/sheets")
-def sheets(db: DbSession) -> list[SheetOut]:
-    query = select(ProductSheet).order_by(ProductSheet.created_at.desc()).limit(50)
-    return list(db.scalars(query))
+    if source is not None:
+        query = query.where(Article.source == source)
+    return [_out(a) for a in db.scalars(query)]

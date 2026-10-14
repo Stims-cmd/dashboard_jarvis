@@ -1,149 +1,98 @@
-"""Daily collection: KEV + new critical CVEs, enriched with NVD and EPSS, then summarized."""
+"""Collection of cyber news (CERT-FR, press), twice a day, then summarized by Claude."""
 
 import logging
+from collections.abc import Sequence
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from app.collect import CollectContext
-from modules.veille_cyber.digest import (
-    DIGEST_SYSTEM,
-    SHEET_SYSTEM,
-    digest_prompt,
-    priority,
-    sheet_prompt,
-)
-from modules.veille_cyber.models import Digest, ProductSheet, Vulnerability
-from modules.veille_cyber.skills import is_known, load_skills, product_key
-from modules.veille_cyber.sources.epss import fetch_epss
-from modules.veille_cyber.sources.kev import KevEntry, fetch_kev
-from modules.veille_cyber.sources.nvd import NvdClient, NvdCve
+from modules.veille_cyber.digest import DIGEST_SYSTEM, digest_prompt
+from modules.veille_cyber.models import Article, Digest
+from modules.veille_cyber.sources.feeds import FEEDS, Feed, RawArticle, fetch_feed, parse_feed
 
 logger = logging.getLogger(__name__)
 
-MAX_NVD_LOOKUPS = 50  # KEV entries enriched per run (6 s each without an NVD key)
-MAX_SHEETS_PER_RUN = 5  # caps the Claude cost of product sheets
+# First run: older articles are stored as history, only these count as "new".
+FIRST_RUN_WINDOW = timedelta(hours=48)
 
 
-def collect(ctx: CollectContext) -> dict[str, int]:
-    db, now = ctx.db, ctx.now
-    since = ctx.last_success_at or now - timedelta(days=1)
-    api_key = ctx.settings.nvd_api_key
-    nvd = NvdClient(ctx.http, api_key.get_secret_value() if api_key else None)
+def collect(ctx: CollectContext, feeds: Sequence[Feed] = FEEDS) -> dict[str, int]:
+    first_run = ctx.last_success_at is None
+    statuses: dict[str, str] = {}
+    new_ids: list[int] = []
+    for feed in feeds:
+        try:
+            raw = parse_feed(fetch_feed(ctx.http, feed.url))
+        except Exception as error:  # noqa: BLE001 - one broken feed must not stop the others
+            logger.warning("veille_cyber: feed %s failed: %s", feed.id, type(error).__name__)
+            statuses[feed.id] = "error"
+            continue
+        statuses[feed.id] = "ok"
+        new_ids += _store(ctx, feed.id, raw, first_run)
 
-    new_kev = _sync_kev(db, fetch_kev(ctx.http), now, first_run=ctx.last_success_at is None)
-    for cve_id in new_kev[:MAX_NVD_LOOKUPS]:
-        if cve := nvd.get_cve(cve_id):
-            _apply_nvd(db, cve, now)
-
-    critical = nvd.critical_published(since, now)
-    for cve in critical:
-        _apply_nvd(db, cve, now)
-
-    new_ids = list(dict.fromkeys(new_kev + [c.cve_id for c in critical]))
-    for cve_id, score in fetch_epss(ctx.http, new_ids).items():
-        if vuln := db.get(Vulnerability, cve_id):
-            vuln.epss, vuln.epss_percentile = score.epss, score.percentile
-    db.commit()
-
-    day_vulns = _update_digest_items(ctx, now.date(), new_ids)
-    summarized = _summarize(ctx, now.date(), day_vulns)
-    # Whole day, not just this run: products skipped by the cap get their sheet next run.
-    sheets = _write_sheets(ctx, day_vulns)
-    return {
-        "new_kev": len(new_kev),
-        "new_critical": len(critical),
-        "digest": int(summarized),
-        "sheets": sheets,
-    }
+    articles = _update_digest(ctx, ctx.now.date(), new_ids, statuses)
+    summarized = _summarize(ctx, ctx.now.date(), articles)
+    errors = sum(1 for s in statuses.values() if s == "error")
+    if errors == len(feeds):
+        # Nothing could be read: the run is a failure, visible in the window and in systemd.
+        raise RuntimeError("every feed failed")
+    return {"new_articles": len(new_ids), "feed_errors": errors, "digest": int(summarized)}
 
 
-def _sync_kev(db: Session, entries: list[KevEntry], now: datetime, first_run: bool) -> list[str]:
-    """Upsert the whole catalog; return the CVE ids that are new for us."""
-    known = set(db.scalars(select(Vulnerability.cve_id).where(Vulnerability.in_kev)))
-    recent = now.date() - timedelta(days=1)
+def _store(ctx: CollectContext, source: str, raw: list[RawArticle], first_run: bool) -> list[int]:
+    """Insert unknown articles; return the ids of those counting as new today."""
     new_ids = []
-    for entry in entries:
-        vuln = db.get(Vulnerability, entry.cve_id)
-        if vuln is None:
-            vuln = Vulnerability(cve_id=entry.cve_id, first_seen_at=now, description="")
-            db.add(vuln)
-        vuln.vendor, vuln.product, vuln.title = entry.vendor, entry.product, entry.name
-        vuln.description = vuln.description or entry.description
-        vuln.in_kev, vuln.ransomware = True, entry.ransomware
-        vuln.kev_date_added, vuln.kev_due_date = entry.date_added, entry.due_date
-        vuln.updated_at = now
-        # First run: the whole catalog is loaded, but only the last day counts as "new".
-        if entry.cve_id not in known and (not first_run or entry.date_added >= recent):
-            new_ids.append(entry.cve_id)
+    for item in raw:
+        if ctx.db.scalar(select(Article.id).where(Article.link == item.link)) is not None:
+            continue
+        article = Article(
+            source=source,
+            link=item.link,
+            title=item.title,
+            summary=item.summary,
+            published_at=item.published_at,
+            first_seen_at=ctx.now,
+        )
+        ctx.db.add(article)
+        ctx.db.flush()  # assigns the id
+        recent = item.published_at is None or ctx.now - item.published_at <= FIRST_RUN_WINDOW
+        if not first_run or recent:
+            new_ids.append(article.id)
+    ctx.db.commit()
     return new_ids
 
 
-def _apply_nvd(db: Session, cve: NvdCve, now: datetime) -> None:
-    vuln = db.get(Vulnerability, cve.cve_id)
-    if vuln is None:
-        vuln = Vulnerability(cve_id=cve.cve_id, first_seen_at=now, in_kev=False, ransomware=False)
-        db.add(vuln)
-    vuln.description = cve.description or vuln.description or ""
-    vuln.published = cve.published
-    vuln.cvss_score, vuln.cvss_severity = cve.cvss_score, cve.cvss_severity
-    vuln.cvss_version = cve.cvss_version
-    # KEV names the product better than CPE ("Apache Log4j2" vs "log4j").
-    vuln.vendor = vuln.vendor or cve.vendor
-    vuln.product = vuln.product or cve.product
-    vuln.updated_at = now
-
-
-def _update_digest_items(ctx: CollectContext, day: date, new_ids: list[str]) -> list[Vulnerability]:
-    """Add this run's CVEs to the day's digest; return all of the day's vulnerabilities."""
-    digest = ctx.db.get(Digest, day) or Digest(day=day, cve_ids=[], created_at=ctx.now)
+def _update_digest(
+    ctx: CollectContext, day: date, new_ids: list[int], statuses: dict[str, str]
+) -> list[Article]:
+    """Add this run's articles to the day's digest; return all of the day's articles."""
+    digest = ctx.db.get(Digest, day) or Digest(day=day, article_ids=[], created_at=ctx.now)
     # Several runs on the same day add up instead of replacing each other.
-    digest.cve_ids = list(dict.fromkeys(digest.cve_ids + new_ids))
+    digest.article_ids = list(dict.fromkeys(digest.article_ids + new_ids))
+    digest.sources = statuses
     digest.created_at = ctx.now
     ctx.db.add(digest)
     ctx.db.commit()
-    return [v for cve_id in digest.cve_ids if (v := ctx.db.get(Vulnerability, cve_id))]
+    return day_articles(ctx.db, digest.article_ids)
 
 
-def _summarize(ctx: CollectContext, day: date, vulns: list[Vulnerability]) -> bool:
-    if not vulns or not ctx.llm.enabled:
+def day_articles(db, article_ids: list[int]) -> list[Article]:
+    """Articles of a digest, most recent first."""
+    if not article_ids:
+        return []
+    found = db.scalars(select(Article).where(Article.id.in_(article_ids)))
+    oldest = datetime.min
+    return sorted(
+        found, key=lambda a: (a.published_at or oldest).replace(tzinfo=None), reverse=True
+    )
+
+
+def _summarize(ctx: CollectContext, day: date, articles: list[Article]) -> bool:
+    if not articles or not ctx.llm.enabled:
         return False
-    text = ctx.llm.complete("veille_cyber.digest", DIGEST_SYSTEM, digest_prompt(vulns))
+    text = ctx.llm.complete("veille_cyber.digest", DIGEST_SYSTEM, digest_prompt(articles))
     if text:
         ctx.db.get(Digest, day).text = text
         ctx.db.commit()
     return text is not None
-
-
-def _write_sheets(ctx: CollectContext, vulns: list[Vulnerability]) -> int:
-    if not ctx.llm.enabled:
-        return 0
-    skills = load_skills(ctx.settings.skills_file)
-    if skills is None:
-        return 0
-    written = 0
-    for vuln in sorted(vulns, key=priority):
-        if written >= MAX_SHEETS_PER_RUN:
-            break
-        if not vuln.product or is_known(skills, vuln.vendor, vuln.product):
-            continue
-        key = product_key(vuln.vendor, vuln.product)
-        if ctx.db.get(ProductSheet, key):
-            continue
-        text = ctx.llm.complete(
-            "veille_cyber.sheet", SHEET_SYSTEM, sheet_prompt(vuln.vendor, vuln.product)
-        )
-        if text:
-            ctx.db.add(
-                ProductSheet(
-                    product_key=key,
-                    vendor=vuln.vendor,
-                    product=vuln.product,
-                    text=text,
-                    created_at=ctx.now,
-                )
-            )
-            ctx.db.commit()
-            written += 1
-    return written

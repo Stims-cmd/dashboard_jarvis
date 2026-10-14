@@ -20,10 +20,6 @@ class Settings(BaseSettings):
     # Claude API (optional): summaries are skipped when the key is missing.
     anthropic_api_key: SecretStr | None = Field(default=None, validation_alias="ANTHROPIC_API_KEY")
     llm_model: str = "claude-haiku-5-5"
-    # NVD API key (optional): raises the NVD rate limit from 5 to 50 requests / 30 s.
-    nvd_api_key: SecretStr | None = None
-    # List of software the owner already knows (one "- name" per line).
-    skills_file: Path = Path("/config/skills.md")
     # OSINT: identifiers to watch (never committed) and Brave Search key (optional).
     osint_file: Path = Path("/config/osint.toml")
     brave_api_key: SecretStr | None = None
@@ -36,7 +32,6 @@ class Settings(BaseSettings):
 
     @field_validator(
         "anthropic_api_key",
-        "nvd_api_key",
         "brave_api_key",
         "lbc_imap_host",
         "lbc_imap_username",

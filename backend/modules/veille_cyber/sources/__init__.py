@@ -1,1 +1,1 @@
-"""Public vulnerability data sources: CISA KEV, NVD and EPSS."""
+"""Public news feeds about cyberattacks (RSS / Atom): see feeds.py."""
