@@ -79,6 +79,12 @@ def test_first_run_keeps_history_but_only_48h_are_new(db, settings):
     assert digest.text is None  # no Claude key
 
 
+def test_first_run_after_the_cve_version(db, settings):
+    # The module already had successful runs (CVE era), but no article is stored yet.
+    counts = run(db, settings, FakeInternet(), last_success_at=NOW - timedelta(hours=12))
+    assert counts["new_articles"] == 5
+
+
 def test_next_run_ignores_known_articles(db, settings):
     run(db, settings, FakeInternet())
     later = NOW + timedelta(hours=11)

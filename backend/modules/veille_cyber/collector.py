@@ -18,7 +18,9 @@ FIRST_RUN_WINDOW = timedelta(hours=48)
 
 
 def collect(ctx: CollectContext, feeds: Sequence[Feed] = FEEDS) -> dict[str, int]:
-    first_run = ctx.last_success_at is None
+    # No article yet (new install, or the former CVE version of this module had run):
+    # the feeds' whole history arrives at once, only the last 48 h are today's news.
+    first_run = ctx.db.scalar(select(Article.id).limit(1)) is None
     statuses: dict[str, str] = {}
     new_ids: list[int] = []
     for feed in feeds:
