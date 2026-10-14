@@ -67,12 +67,14 @@ nginx sert le frontend et relaie `/api` vers le backend, sur `127.0.0.1:8080` un
 
 ## Module Veille cyber
 
-Chaque matin, le collecteur :
+Revue de presse des cyberattaques et de l'actualité cyber, deux fois par jour. Le collecteur :
 
-1. télécharge le catalogue [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) (vulnérabilités activement exploitées) ;
-2. récupère dans la [NVD](https://nvd.nist.gov/developers/vulnerabilities) le détail des nouvelles entrées KEV et les CVE critiques publiées depuis la dernière collecte ;
-3. ajoute le score [EPSS](https://www.first.org/epss/) (probabilité d'exploitation à 30 jours) ;
-4. si une clé Claude est configurée : rédige un résumé d'environ 5 minutes et une fiche pédagogique pour chaque logiciel absent de `data/skills.md` (5 fiches maximum par jour).
+1. lit les flux RSS publics du [CERT-FR](https://cert.cyber.gouv.fr/) (alertes, menaces, bulletins ; les avis de vulnérabilité sont volontairement exclus) et de [Zataz](https://www.zataz.com/) ;
+2. enregistre les nouveaux articles (titre, lien, résumé en texte brut). Le XML est analysé de façon sûre : taille limitée, entités refusées, liens `https` uniquement, paramètres de pistage retirés ;
+3. ajoute ces articles au résumé du jour (les deux passages de la journée se cumulent) ;
+4. si une clé Claude est configurée : rédige une revue d'environ 5 minutes (« À retenir », « Autres actualités », « Pour comprendre »).
+
+Une source en panne n'empêche pas les autres d'être lues ; la collecte n'échoue que si toutes les sources sont injoignables. Au premier lancement, seuls les articles des dernières 48 h comptent comme nouveaux, les plus anciens sont gardés en historique.
 
 Lancer une collecte à la main :
 
@@ -82,13 +84,11 @@ docker compose -f docker-compose.dev.yml run --rm backend python -m app.collect 
 
 Configuration (dans `.env`, voir `.env.example`) :
 
-- `ANTHROPIC_API_KEY` : optionnelle. Sans elle, la fenêtre affiche la liste brute triée par priorité. Seules des données publiques (CVE, produits, scores) sont envoyées à l'API ; chaque appel est journalisé (modèle, tokens, coût estimé) dans la table `llm_calls`, et le coût du mois s'affiche dans la fenêtre.
-- `JARVIS_NVD_API_KEY` : optionnelle et gratuite ; sans elle, le collecteur attend 6 s entre deux requêtes NVD.
-- `data/skills.md` : copier `data/skills.example.md` et lister les logiciels connus. Ce fichier n'est pas commité et n'est jamais envoyé à Claude.
+- `ANTHROPIC_API_KEY` : optionnelle. Sans elle, la fenêtre affiche seulement la liste des articles. Seuls des articles de presse publics (titre, résumé, source) sont envoyés à l'API ; chaque appel est journalisé (modèle, tokens, coût estimé) dans la table `llm_calls`, et le coût du mois s'affiche dans la fenêtre.
 
 ### Planification (serveur)
 
-Les fichiers `deploy/systemd/jarvis-veille.service` et `.timer` lancent la collecte chaque jour à 6h30 (heure de Paris), en rattrapant une exécution manquée après un redémarrage :
+Les fichiers `deploy/systemd/jarvis-veille.service` et `.timer` lancent la collecte chaque jour à 6h30 et 18h30 (heure de Paris), en rattrapant une exécution manquée après un redémarrage :
 
 ```sh
 sudo cp deploy/systemd/jarvis-veille.* /etc/systemd/system/

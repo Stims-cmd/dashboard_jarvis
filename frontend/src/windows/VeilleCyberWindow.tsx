@@ -3,104 +3,144 @@ import { api, UnauthorizedError } from '../api'
 
 const BASE = '/api/modules/veille_cyber'
 
+interface Source {
+  id: string
+  label: string
+  status: 'ok' | 'error' | null
+}
+
 interface Status {
-  last_run: { started_at: string; status: string; summary: string | null } | null
+  last_run: { started_at: string; finished_at: string | null; status: string; summary: string | null } | null
   last_success_at: string | null
   stale: boolean
   llm_enabled: boolean
-  skills_file_found: boolean
   llm_cost_month_usd: number
+  sources: Source[]
 }
 
-interface Vulnerability {
-  cve_id: string
-  vendor: string | null
-  product: string | null
-  title: string | null
-  description: string
-  cvss_score: number | null
-  cvss_severity: string | null
-  cvss_version: string | null
-  epss: number | null
-  in_kev: boolean
-  kev_due_date: string | null
-  ransomware: boolean
+interface Article {
+  id: number
+  source: string
+  link: string
+  title: string
+  summary: string
+  published_at: string | null
+  first_seen_at: string
 }
 
 interface Digest {
   day: string
   text: string | null
-  vulnerabilities: Vulnerability[]
-}
-
-interface Sheet {
-  vendor: string | null
-  product: string
-  text: string
+  articles: Article[]
 }
 
 const dateTime = (iso: string) =>
-  new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
+  new Date(iso).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+
+// Links come from external feeds: only https links are clickable.
+const isHttps = (href: string) => {
+  try {
+    return new URL(href).protocol === 'https:'
+  } catch {
+    return false
+  }
+}
 
 function StatusLine({ status }: { status: Status }) {
   const last = status.last_success_at
-  const stale = status.stale
   return (
     <div className="vc-status">
-      <span className={stale ? 'warning' : undefined}>
-        {last ? `Dernière collecte : ${dateTime(last)}` : 'Aucune collecte réussie'}
-        {stale && last && ' (ancienne)'}
+      <span className={status.stale ? 'warning' : undefined}>
+        {last ? `Dernière lecture : ${dateTime(last)}` : 'Aucune collecte réussie'}
       </span>
-      {status.last_run?.status === 'error' && <span className="warning">Échec de la dernière collecte</span>}
-      <span>
-        Claude : {status.llm_enabled ? `${status.llm_cost_month_usd.toFixed(4)} $ ce mois` : 'non configuré'}
-      </span>
-      {status.llm_enabled && !status.skills_file_found && <span className="warning">skills.md introuvable</span>}
+      {status.sources.map((source) => (
+        <span key={source.id} className={source.status === 'error' ? 'warning' : undefined}>
+          {source.label}
+          {source.status === 'error' && ' : en panne'}
+        </span>
+      ))}
+      <span>Claude : {status.llm_enabled ? `${status.llm_cost_month_usd.toFixed(4)} $ ce mois` : 'non configuré'}</span>
     </div>
   )
 }
 
-function VulnerabilityItem({ vuln }: { vuln: Vulnerability }) {
+function ArticleItem({ article, labels }: { article: Article; labels: Record<string, string> }) {
+  const when = article.published_at ?? article.first_seen_at
   return (
     <li className="vc-item">
       <div className="vc-item-head">
-        <a href={`https://nvd.nist.gov/vuln/detail/${vuln.cve_id}`} target="_blank" rel="noreferrer noopener">
-          {vuln.cve_id}
-        </a>
-        {vuln.in_kev && <span className="badge badge-danger">Exploitée (KEV)</span>}
-        {vuln.ransomware && <span className="badge badge-danger">Rançongiciel</span>}
-        {vuln.cvss_score !== null && (
-          <span className="badge">
-            CVSS {vuln.cvss_version} {vuln.cvss_score}
-          </span>
+        {isHttps(article.link) ? (
+          <a href={article.link} target="_blank" rel="noreferrer noopener">
+            {article.title}
+          </a>
+        ) : (
+          <span>{article.title}</span>
         )}
-        {vuln.epss !== null && <span className="badge">EPSS {(vuln.epss * 100).toFixed(1)} %</span>}
       </div>
       <div className="vc-item-product">
-        {[vuln.vendor, vuln.product].filter(Boolean).join(' ') || 'Produit non identifié'}
-        {vuln.kev_due_date && ` · échéance CISA ${vuln.kev_due_date}`}
+        <span className={article.source.startsWith('cert_fr') ? 'badge' : 'badge badge-press'}>
+          {labels[article.source] ?? article.source}
+        </span>{' '}
+        {dateTime(when)}
       </div>
-      <p className="vc-item-desc">{vuln.title || vuln.description}</p>
+      {article.summary && <p className="vc-item-desc">{article.summary}</p>}
     </li>
+  )
+}
+
+function History({ sources, labels }: { sources: Source[]; labels: Record<string, string> }) {
+  const [source, setSource] = useState('')
+  const [articles, setArticles] = useState<Article[] | null>(null)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const query = source ? `&source=${encodeURIComponent(source)}` : ''
+    api
+      .get<Article[]>(`${BASE}/articles?days=7${query}`)
+      .then(setArticles)
+      .catch(() => setArticles([]))
+  }, [open, source])
+
+  return (
+    <details className="vc-sheet" onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>Historique des 7 derniers jours</summary>
+      <label className="vc-filter">
+        Source :{' '}
+        <select value={source} onChange={(e) => setSource(e.target.value)}>
+          <option value="">toutes</option>
+          {sources.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {articles === null ? (
+        <p className="placeholder">Chargement…</p>
+      ) : articles.length === 0 ? (
+        <p className="placeholder">Aucun article.</p>
+      ) : (
+        <ul className="vc-list">
+          {articles.map((a) => (
+            <ArticleItem key={a.id} article={a} labels={labels} />
+          ))}
+        </ul>
+      )}
+    </details>
   )
 }
 
 export default function VeilleCyberWindow() {
   const [status, setStatus] = useState<Status | null>(null)
   const [digest, setDigest] = useState<Digest | null>(null)
-  const [sheets, setSheets] = useState<Sheet[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    Promise.all([
-      api.get<Status>(`${BASE}/status`),
-      api.get<Digest | null>(`${BASE}/digest/latest`),
-      api.get<Sheet[]>(`${BASE}/sheets`),
-    ])
-      .then(([s, d, sh]) => {
+    Promise.all([api.get<Status>(`${BASE}/status`), api.get<Digest | null>(`${BASE}/digest/latest`)])
+      .then(([s, d]) => {
         setStatus(s)
         setDigest(d)
-        setSheets(sh)
       })
       .catch((err: unknown) =>
         setError(err instanceof UnauthorizedError ? 'Session expirée : recharge la page.' : 'Chargement impossible.'),
@@ -110,41 +150,39 @@ export default function VeilleCyberWindow() {
   if (error) return <p className="error">{error}</p>
   if (!status) return <p className="placeholder">Chargement…</p>
 
+  const labels = Object.fromEntries(status.sources.map((s) => [s.id, s.label]))
+
   return (
     <div className="vc">
       <StatusLine status={status} />
       {!digest ? (
         <p className="placeholder">
-          Pas encore de données. Lance la collecte : <code>python -m app.collect veille_cyber</code>
+          Pas encore d'actualités. Lance la collecte : <code>python -m app.collect veille_cyber</code>
         </p>
       ) : (
         <>
-          <h3>Veille du {new Date(digest.day).toLocaleDateString('fr-FR')}</h3>
-          {/* Plain text only: the summary is built from external data, never rendered as HTML. */}
+          <h3>Revue du {new Date(digest.day).toLocaleDateString('fr-FR')}</h3>
+          {/* Plain text only: the summary is built from external feeds, never rendered as HTML. */}
           {digest.text && <div className="vc-digest">{digest.text}</div>}
-          {digest.vulnerabilities.length === 0 ? (
+          {digest.articles.length === 0 ? (
             <p className="placeholder">Rien de nouveau aujourd'hui.</p>
           ) : (
-            <ul className="vc-list">
-              {digest.vulnerabilities.map((v) => (
-                <VulnerabilityItem key={v.cve_id} vuln={v} />
-              ))}
-            </ul>
+            <>
+              {digest.text && <h3>Articles du jour</h3>}
+              <ul className="vc-list">
+                {digest.articles.map((a) => (
+                  <ArticleItem key={a.id} article={a} labels={labels} />
+                ))}
+              </ul>
+            </>
           )}
         </>
       )}
-      {sheets.length > 0 && (
-        <>
-          <h3>Fiches logiciels</h3>
-          {sheets.map((sheet) => (
-            <details key={`${sheet.vendor}-${sheet.product}`} className="vc-sheet">
-              <summary>{[sheet.vendor, sheet.product].filter(Boolean).join(' ')}</summary>
-              <div className="vc-digest">{sheet.text}</div>
-            </details>
-          ))}
-        </>
-      )}
-      <p className="disclaimer">Sources : CISA KEV, NIST NVD, FIRST EPSS.</p>
+      <History sources={status.sources} labels={labels} />
+      <p className="disclaimer">
+        Sources : flux publics du CERT-FR (alertes, menaces, bulletins) et de Zataz. Les liens s'ouvrent sur le site
+        d'origine.
+      </p>
     </div>
   )
 }

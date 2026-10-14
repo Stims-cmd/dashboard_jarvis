@@ -26,7 +26,6 @@ def settings(tmp_path, password_hash) -> Settings:
         cookie_secure=False,
         # Never call the real Claude API from tests, even if .env defines a key.
         anthropic_api_key=None,
-        nvd_api_key=None,
         _env_file=None,
     )
 

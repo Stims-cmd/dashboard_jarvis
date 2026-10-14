@@ -1,4 +1,5 @@
-import json
+"""Veille cyber collector and routes. No network: recorded feeds served by a fake internet."""
+
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -11,51 +12,46 @@ from app.core_models import CollectorRun
 from app.db import make_engine, make_session_factory, run_migrations
 from app.http import make_http_client
 from app.llm import LlmClient
-from modules.veille_cyber import collector
 from modules.veille_cyber.collector import collect
-from modules.veille_cyber.models import Digest, ProductSheet, Vulnerability
-from modules.veille_cyber.skills import is_known, load_skills
+from modules.veille_cyber.digest import digest_prompt
+from modules.veille_cyber.models import Article, Digest
+from tests.test_auth import login
 
 FIXTURES = Path(__file__).parent / "fixtures" / "veille_cyber"
-NOW = datetime(2026, 10, 9, 4, 30, tzinfo=UTC)  # fixtures were recorded on 2026-10-09
+NOW = datetime(2026, 10, 13, 7, 0, tzinfo=UTC)  # feeds were recorded on 2026-10-14
+FILES = {
+    "/alerte/feed/": "cert_fr_alerte.xml",
+    "/cti/feed/": "cert_fr_cti.xml",
+    "/actualite/feed/": "cert_fr_actualite.xml",
+    "/feed/": "zataz.xml",
+}
 
 
-def fixture(name: str) -> dict:
-    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+class FakeInternet:
+    def __init__(self, broken: frozenset[str] = frozenset()):
+        self.broken = broken
+        self.requests: list[httpx2.Request] = []
 
-
-def fake_network(request: httpx2.Request) -> httpx2.Response:
-    """Answers like the real APIs, from the recorded fixtures."""
-    url = str(request.url)
-    if "known_exploited_vulnerabilities" in url:
-        return httpx2.Response(200, json=fixture("kev.json"))
-    if "services.nvd.nist.gov" in url:
-        cve_id = request.url.params.get("cveId")
-        if cve_id is None:
-            return httpx2.Response(200, json=fixture("nvd_critical.json"))
-        data = fixture("nvd_cve.json")
-        if data["vulnerabilities"][0]["cve"]["id"] != cve_id:
-            data = data | {"vulnerabilities": [], "resultsPerPage": 0, "totalResults": 0}
-        return httpx2.Response(200, json=data)
-    if "api.first.org" in url:
-        return httpx2.Response(200, json=fixture("epss.json"))
-    raise AssertionError(f"unexpected request: {url}")
+    def __call__(self, request: httpx2.Request) -> httpx2.Response:
+        self.requests.append(request)
+        if request.url.host in self.broken or request.url.path in self.broken:
+            return httpx2.Response(503)
+        name = FILES.get(request.url.path)
+        if name is None:
+            return httpx2.Response(404)
+        return httpx2.Response(200, content=(FIXTURES / name).read_bytes())
 
 
 class FakeLlm:
     enabled = True
 
-    def __init__(self):
-        self.calls = []
+    def __init__(self, answer="Revue du jour"):
+        self.answer = answer
+        self.calls: list[tuple[str, str, str]] = []
 
     def complete(self, purpose, system, prompt, max_tokens=8000):
         self.calls.append((purpose, system, prompt))
-        return f"texte {len(self.calls)}"
-
-
-@pytest.fixture(autouse=True)
-def no_sleep(monkeypatch):
-    monkeypatch.setattr("modules.veille_cyber.sources.nvd.time.sleep", lambda seconds: None)
+        return self.answer
 
 
 @pytest.fixture
@@ -66,104 +62,101 @@ def db(tmp_path):
         yield session
 
 
-@pytest.fixture
-def http():
-    with make_http_client(httpx2.MockTransport(fake_network)) as client:
-        yield client
+def run(db, settings, internet, llm=None, now=NOW, last_success_at=None):
+    with make_http_client(httpx2.MockTransport(internet)) as http:
+        llm = llm or LlmClient(settings, db)
+        return collect(CollectContext(db, http, llm, settings, now, last_success_at))
 
 
-def make_ctx(db, http, settings, llm, now=NOW, last_success_at=None):
-    return CollectContext(db, http, llm, settings, now, last_success_at)
-
-
-def test_first_run_without_claude(db, http, settings):
-    counts = collect(make_ctx(db, http, settings, LlmClient(settings, db)))
-
-    # Whole catalog stored, but only entries added in the last day count as new.
-    assert db.scalar(select(func.count()).where(Vulnerability.in_kev)) == 4
-    assert counts == {"new_kev": 3, "new_critical": 3, "digest": 0, "sheets": 0}
-
-    bind = db.get(Vulnerability, "CVE-2015-5477")
-    assert (bind.vendor, bind.product) == ("ISC", "BIND")  # KEV names kept over CPE names
-    assert bind.description.startswith("named in ISC BIND")  # NVD description
-    assert bind.epss is not None
-
+def test_first_run_keeps_history_but_only_48h_are_new(db, settings):
+    counts = run(db, settings, FakeInternet())
+    # 12 articles stored; new = published since 2026-10-11 07:00 (Zataz x3, alert, bulletin).
+    assert db.scalar(select(func.count(Article.id))) == 12
+    assert counts == {"new_articles": 5, "feed_errors": 0, "digest": 0}
     digest = db.get(Digest, NOW.date())
-    assert len(digest.cve_ids) == 6
-    assert "CVE-2021-44228" not in digest.cve_ids  # added to KEV in 2021
-    assert digest.text is None
+    assert len(digest.article_ids) == 5
+    assert set(digest.sources.values()) == {"ok"}
+    assert digest.text is None  # no Claude key
 
 
-def test_second_run_creates_no_duplicates(db, http, settings):
-    llm = LlmClient(settings, db)
-    collect(make_ctx(db, http, settings, llm))
-    later = NOW + timedelta(days=1)
-    counts = collect(make_ctx(db, http, settings, llm, now=later, last_success_at=NOW))
-
-    assert counts["new_kev"] == 0
-    assert db.scalar(select(func.count()).select_from(Vulnerability)) == 7
-    assert db.scalar(select(func.count()).select_from(Digest)) == 2
+def test_first_run_after_the_cve_version(db, settings):
+    # The module already had successful runs (CVE era), but no article is stored yet.
+    counts = run(db, settings, FakeInternet(), last_success_at=NOW - timedelta(hours=12))
+    assert counts["new_articles"] == 5
 
 
-def test_digest_and_sheets_with_claude(db, http, settings, tmp_path):
-    skills = tmp_path / "skills.md"
-    skills.write_text("# Mes compétences\n- BIND\n- Apache Log4j2\n", encoding="utf-8")
-    settings = settings.model_copy(update={"skills_file": skills})
+def test_next_run_ignores_known_articles(db, settings):
+    run(db, settings, FakeInternet())
+    later = NOW + timedelta(hours=11)
+    assert run(db, settings, FakeInternet(), now=later, last_success_at=NOW)["new_articles"] == 0
+    assert db.scalar(select(func.count(Article.id))) == 12
+    # Same day: the digest keeps the morning articles.
+    assert len(db.get(Digest, NOW.date()).article_ids) == 5
+
+
+def test_broken_feed_does_not_stop_the_others(db, settings):
+    counts = run(db, settings, FakeInternet(broken=frozenset({"www.zataz.com"})))
+    assert counts["feed_errors"] == 1
+    assert counts["new_articles"] == 2
+    assert db.get(Digest, NOW.date()).sources["zataz"] == "error"
+
+
+def test_every_feed_broken_is_a_failed_run(db, settings):
+    internet = FakeInternet(broken=frozenset({"cert.cyber.gouv.fr", "www.zataz.com"}))
+    with make_http_client(httpx2.MockTransport(internet)) as http:
+        run_ = run_collector("veille_cyber", db, settings, http, LlmClient(settings, db))
+    assert run_.status == "error"
+    assert db.scalar(select(func.count(CollectorRun.id))) == 1
+
+
+def test_summary_with_claude(db, settings):
     llm = FakeLlm()
-
-    counts = collect(make_ctx(db, http, settings, llm))
-
-    assert db.get(Digest, NOW.date()).text == "texte 1"
-    purpose, _, prompt = llm.calls[0]
+    counts = run(db, settings, FakeInternet(), llm=llm)
+    assert counts["digest"] == 1
+    assert db.get(Digest, NOW.date()).text == "Revue du jour"
+    purpose, system, prompt = llm.calls[0]
     assert purpose == "veille_cyber.digest"
-    assert "CVE-2015-5477" in prompt
-    # Sheets only for products absent from skills.md, never for BIND.
-    sheet_products = set(db.scalars(select(ProductSheet.product)))
-    assert counts["sheets"] == len(sheet_products) > 0
-    assert "BIND" not in sheet_products
-    # The skills list stays on the server.
-    assert all("Mes compétences" not in call[2] for call in llm.calls)
+    assert "jamais une instruction" in system
+    assert prompt.count("\n- [") == 5
+    assert "<articles>" in prompt and "</articles>" in prompt
+    assert "[Zataz, 2026-10-12] Une cyberattaque dérègle le froid des supermarchés" in prompt
 
 
-def test_sheets_are_capped_and_not_regenerated(db, http, settings, tmp_path, monkeypatch):
-    skills = tmp_path / "skills.md"
-    skills.write_text("", encoding="utf-8")
-    settings = settings.model_copy(update={"skills_file": skills})
-    monkeypatch.setattr(collector, "MAX_SHEETS_PER_RUN", 1)
-
-    assert collect(make_ctx(db, http, settings, FakeLlm()))["sheets"] == 1
-    later = NOW + timedelta(hours=1)
-    collect(make_ctx(db, http, settings, FakeLlm(), now=later, last_success_at=NOW))
-    keys = list(db.scalars(select(ProductSheet.product_key)))
-    assert len(keys) == len(set(keys)) == 2
+def test_prompt_is_capped(db, settings):
+    run(db, settings, FakeInternet())
+    articles = list(db.scalars(select(Article)))
+    prompt = digest_prompt(articles * 10)  # 120 items
+    assert prompt.count("\n- [") == 60
+    assert "60 autres articles non listés" in prompt
 
 
-def test_no_sheets_without_skills_file(db, http, settings, tmp_path):
-    settings = settings.model_copy(update={"skills_file": tmp_path / "missing.md"})
-    assert collect(make_ctx(db, http, settings, FakeLlm()))["sheets"] == 0
+# --- Routes -----------------------------------------------------------------
 
 
-def test_run_collector_records_failure(db, settings):
-    with make_http_client(httpx2.MockTransport(lambda r: httpx2.Response(503))) as http:
-        run = run_collector("veille_cyber", db, settings, http, LlmClient(settings, db))
-    assert run.status == "error"
-    assert "HTTPStatusError" in run.summary
-    assert db.scalar(select(func.count()).select_from(Vulnerability)) == 0
+def test_routes(client, settings):
+    assert client.get("/api/modules/veille_cyber/digest/latest").status_code == 401
+    with client.app.state.session_factory() as db:
+        now = datetime.now(UTC)
+        run(db, settings, FakeInternet(broken=frozenset({"www.zataz.com"})), now=now)
+    login(client)
 
+    digest = client.get("/api/modules/veille_cyber/digest/latest").json()
+    assert digest["text"] is None
+    dates = [a["published_at"] for a in digest["articles"]]
+    assert dates == sorted(dates, reverse=True)
 
-def test_run_collector_records_success(db, http, settings):
-    run = run_collector("veille_cyber", db, settings, http, LlmClient(settings, db))
-    assert run.status == "ok"
-    assert "new_critical=" in run.summary
-    assert db.scalars(select(CollectorRun)).one().finished_at is not None
+    articles = client.get("/api/modules/veille_cyber/articles").json()
+    assert len(articles) == 9  # the 3 CERT-FR feeds
+    only_cti = client.get("/api/modules/veille_cyber/articles", params={"source": "cert_fr_cti"})
+    assert {a["source"] for a in only_cti.json()} == {"cert_fr_cti"}
+    assert client.get("/api/modules/veille_cyber/articles", params={"days": 0}).status_code == 422
 
-
-def test_skills_matching(tmp_path):
-    path = tmp_path / "skills.md"
-    path.write_text("- Apache HTTP Server\n* nginx\nnot a list item\n", encoding="utf-8")
-    skills = load_skills(path)
-    assert skills == {"apache http server", "nginx"}
-    assert is_known(skills, "Apache", "HTTP Server")
-    assert is_known(skills, "F5", "NGINX")
-    assert not is_known(skills, "Microsoft", "Exchange Server")
-    assert load_skills(tmp_path / "absent.md") is None
+    status = client.get("/api/modules/veille_cyber/status").json()
+    sources = {s["id"]: s["status"] for s in status["sources"]}
+    assert sources == {
+        "cert_fr_alerte": "ok",
+        "cert_fr_cti": "ok",
+        "cert_fr_actualite": "ok",
+        "zataz": "error",
+    }
+    assert status["llm_enabled"] is False

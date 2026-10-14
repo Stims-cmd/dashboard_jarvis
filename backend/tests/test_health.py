@@ -5,8 +5,8 @@ def test_health_is_public(client):
 
 
 def test_empty_api_keys_are_ignored(settings):
-    data = settings.model_dump() | {"ANTHROPIC_API_KEY": "", "nvd_api_key": "  "}
+    data = settings.model_dump() | {"ANTHROPIC_API_KEY": "", "brave_api_key": "  "}
     data.pop("anthropic_api_key")
     reloaded = type(settings)(**data, _env_file=None)
     assert reloaded.anthropic_api_key is None
-    assert reloaded.nvd_api_key is None
+    assert reloaded.brave_api_key is None
