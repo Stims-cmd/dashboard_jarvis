@@ -10,7 +10,6 @@
 *.db-shm
 data/*
 !data/.gitkeep
-!data/skills.example.md
 !data/osint.example.toml
 
 # Python

@@ -1,9 +1,9 @@
 [Unit]
-Description=Jarvis - Veille cyber collection, every morning
+Description=Jarvis - Veille cyber collection, morning and evening
 
 [Timer]
-OnCalendar=*-*-* 06:30:00 Europe/Paris
-# Catch up after a reboot if the 06:30 run was missed.
+OnCalendar=*-*-* 06,18:30:00 Europe/Paris
+# Catch up after a reboot if a run was missed.
 Persistent=true
 RandomizedDelaySec=5min
 
