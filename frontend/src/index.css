@@ -1059,3 +1059,18 @@ code {
   background: none;
   color: var(--muted);
 }
+
+/* --- Veille cyber -------------------------------------------------------- */
+
+.badge-press {
+  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  color: var(--warn);
+}
+
+.vc-filter {
+  display: block;
+  margin: 0.5rem 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
