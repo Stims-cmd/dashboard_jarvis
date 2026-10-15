@@ -6,6 +6,8 @@ from pathlib import Path
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.auth.totp import is_valid_secret
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="JARVIS_", env_file=".env", extra="ignore")
@@ -16,6 +18,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///data/jarvis.db"
     cookie_secure: bool = True
     session_hours: int = Field(default=8, ge=1, le=24 * 7)
+    # Base32 TOTP secret (python -m app.totp_setup). Empty: no second factor.
+    totp_secret: SecretStr | None = None
 
     # Claude API (optional): summaries are skipped when the key is missing.
     anthropic_api_key: SecretStr | None = Field(default=None, validation_alias="ANTHROPIC_API_KEY")
@@ -31,6 +35,7 @@ class Settings(BaseSettings):
     lbc_imap_folder: str = "INBOX"
 
     @field_validator(
+        "totp_secret",
         "anthropic_api_key",
         "brave_api_key",
         "lbc_imap_host",
@@ -42,6 +47,13 @@ class Settings(BaseSettings):
     def empty_means_missing(cls, value: object) -> object:
         # "ANTHROPIC_API_KEY=" left empty in .env must not count as a key.
         return None if isinstance(value, str) and not value.strip() else value
+
+    @field_validator("totp_secret")
+    @classmethod
+    def totp_secret_is_base32(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None and not is_valid_secret(value.get_secret_value()):
+            raise ValueError("must be a base32 secret of at least 128 bits (app.totp_setup)")
+        return value
 
 
 @lru_cache

@@ -26,6 +26,8 @@ def settings(tmp_path, password_hash) -> Settings:
         cookie_secure=False,
         # Never call the real Claude API from tests, even if .env defines a key.
         anthropic_api_key=None,
+        # TOTP is tested on its own (test_totp.py), even if .env defines a secret.
+        totp_secret=None,
         _env_file=None,
     )
 
