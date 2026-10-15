@@ -16,13 +16,13 @@ from sqlalchemy import select
 from app.deps import AppSettings, DbSession
 from app.llm import LlmClient
 from modules.leboncoin import sales
-from modules.leboncoin.models import Ad, Item
+from modules.leboncoin.comparables import find_comparables, keywords
+from modules.leboncoin.models import Item
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/items")
 
 MAX_CENTS = 10_000_000  # 100 000 €
-MAX_KEYWORDS = 5
 COMPARABLES_SHOWN = 10
 
 DRAFT_SYSTEM = """Tu rédiges des annonces Leboncoin en français pour un particulier.
@@ -198,23 +198,12 @@ def delete_item(item_id: int, db: DbSession) -> Response:
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-def _like_escape(word: str) -> str:
-    """The word is matched literally: % and _ are not wildcards."""
-    return word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-
-
 @router.get("/{item_id}/comparables")
 def comparables(item_id: int, db: DbSession) -> ComparablesOut:
     """Ads collected from the alerts whose title contains every keyword of the item."""
     item = _get_or_404(db, item_id)
-    words = [w for w in item.keywords.lower().split() if len(w) >= 2][:MAX_KEYWORDS]
-    if not words:
-        return ComparablesOut(keywords=[], **sales.comparables_stats([]).__dict__, ads=[])
-    query = select(Ad)
-    # Parameterized LIKE. SQLite ignores case for ASCII letters only: "VÉLO" != "vélo".
-    for word in words:
-        query = query.where(Ad.title.ilike(f"%{_like_escape(word)}%", escape="\\"))
-    found = db.scalars(query.order_by(Ad.first_seen_at.desc())).all()
+    words = keywords(item.keywords)
+    found = find_comparables(db, words)
     stats = sales.comparables_stats([a.price_cents for a in found if a.price_cents is not None])
     return ComparablesOut(
         keywords=words,
