@@ -1,5 +1,5 @@
 """Tables of the Leboncoin module: ads read from alert emails, processed emails,
-and the owner's own items for sale.
+the owner's own items for sale, and the ads the owner asked Jarvis to analyse.
 
 Prices are integer cents. Only public ad data is stored, never the email content.
 """
@@ -66,3 +66,22 @@ class Item(Base):
     draft_source: Mapped[str | None] = mapped_column(String(20))  # claude | template
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class AdAnalysis(Base):
+    """An ad pasted by the owner and its analysis. Contact details are removed first."""
+
+    __tablename__ = "lbc_analyses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(200))
+    ad_text: Mapped[str] = mapped_column(Text)
+    keywords: Mapped[str] = mapped_column(String(200), default="")
+    price_cents: Mapped[int | None] = mapped_column(Integer)
+    signals: Mapped[list] = mapped_column(JSON, default=list)  # local scam signals
+    # {"count", "min_cents", "median_cents", "max_cents"} of comparable collected ads.
+    comparables: Mapped[dict] = mapped_column(JSON, default=dict)
+    result: Mapped[dict | None] = mapped_column(JSON)  # Claude's analysis, None if local only
+    sources: Mapped[list] = mapped_column(JSON, default=list)  # [{"url", "title"}, ...]
+    source: Mapped[str] = mapped_column(String(20))  # claude | local
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

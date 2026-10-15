@@ -31,4 +31,6 @@ class LlmCall(Base):
     input_tokens: Mapped[int] = mapped_column(Integer)
     output_tokens: Mapped[int] = mapped_column(Integer)
     stop_reason: Mapped[str | None] = mapped_column(String(30))
+    # Web searches run by Anthropic during the call (billed on top of tokens).
+    web_searches: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     cost_usd: Mapped[float | None] = mapped_column(Float)

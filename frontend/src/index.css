@@ -942,6 +942,108 @@ code {
   margin-top: 0.3rem;
 }
 
+.lbc-analysis-title {
+  margin: 0.6rem 0 0.15rem;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  color: var(--accent-strong);
+}
+
+.lbc-analysis-list {
+  margin: 0.2rem 0;
+  padding-left: 1.1rem;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.lbc-plain-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+.lbc-opinion-positif > span:first-child,
+.lbc-opinion-negatif > span:first-child,
+.lbc-opinion-neutre > span:first-child {
+  display: inline-block;
+  width: 1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.lbc-opinion-positif > span:first-child {
+  color: var(--success);
+}
+
+.lbc-opinion-negatif > span:first-child {
+  color: var(--error);
+}
+
+.lbc-opinion-neutre > span:first-child {
+  color: var(--muted);
+}
+
+.lbc-verdict-bonne_affaire,
+.lbc-status-ok {
+  border-color: color-mix(in srgb, var(--success) 55%, transparent);
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: var(--success);
+}
+
+.lbc-verdict-prix_correct,
+.lbc-status-a_verifier {
+  border-color: color-mix(in srgb, var(--warn) 55%, transparent);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  color: var(--warn);
+}
+
+.lbc-verdict-mauvaise_affaire,
+.lbc-status-probleme {
+  border-color: color-mix(in srgb, var(--error) 55%, transparent);
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+  color: var(--error);
+}
+
+.lbc-status-inconnu {
+  border-color: var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.lbc-repairs {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.lbc-repairs td {
+  padding: 0.25rem 0.4rem 0.25rem 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.lbc-repairs td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.lbc-urgency-immediate {
+  color: var(--error);
+}
+
+.lbc-urgency-bientot {
+  color: var(--warn);
+}
+
+.lbc-urgency-a_surveiller {
+  color: var(--muted);
+}
+
+.lbc-total {
+  margin: 0.5rem 0 0;
+  font-size: 0.92rem;
+}
+
 /* --- Login --------------------------------------------------------------- */
 
 .login-screen {

@@ -86,3 +86,69 @@ export function isLeboncoinUrl(href: string) {
     return false
   }
 }
+
+export type Verdict = 'bonne_affaire' | 'prix_correct' | 'mauvaise_affaire'
+export type CheckStatus = 'ok' | 'a_verifier' | 'probleme' | 'inconnu'
+export type Urgency = 'immediate' | 'bientot' | 'a_surveiller'
+
+export interface Vehicle {
+  carte_grise: { statut: CheckStatus; detail: string }
+  controle_technique: { statut: CheckStatus; detail: string }
+  reparations: { element: string; urgence: Urgency; cout_min_euros: number; cout_max_euros: number }[]
+  frais_carte_grise_euros: number | null
+}
+
+export interface AnalysisResult {
+  verdict: Verdict
+  resume: string
+  elements: { point: string; avis: 'positif' | 'negatif' | 'neutre' }[]
+  vehicule: Vehicle | null
+  fiabilite: string
+  arnaque: string
+  prix: string
+  questions_vendeur: string[]
+}
+
+export interface Analysis {
+  id: number
+  title: string
+  ad_text: string
+  keywords: string
+  price_cents: number | null
+  signals: string[]
+  comparables: { count: number; min_cents: number | null; median_cents: number | null; max_cents: number | null }
+  result: AnalysisResult | null
+  // Price + registration fees + repairs, in cents (vehicles only).
+  estimated_total_cents: [number, number] | null
+  sources: { url: string; title: string }[]
+  source: 'claude' | 'local'
+  created_at: string
+}
+
+export const VERDICTS: Record<Verdict, string> = {
+  bonne_affaire: 'Bonne affaire',
+  prix_correct: 'Prix correct',
+  mauvaise_affaire: 'Mauvaise affaire',
+}
+
+export const CHECK_STATUSES: Record<CheckStatus, string> = {
+  ok: 'OK',
+  a_verifier: 'à vérifier',
+  probleme: 'problème',
+  inconnu: 'inconnu',
+}
+
+export const URGENCIES: Record<Urgency, string> = {
+  immediate: 'tout de suite',
+  bientot: 'bientôt',
+  a_surveiller: 'à surveiller',
+}
+
+// Sources come from web search results: only https links are clickable.
+export function isHttpsUrl(href: string) {
+  try {
+    return new URL(href).protocol === 'https:'
+  } catch {
+    return false
+  }
+}
