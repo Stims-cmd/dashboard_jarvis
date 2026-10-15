@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react'
 import { UnauthorizedError } from '../api'
 import AdsSection from './leboncoin/AdsSection'
+import AnalysisSection from './leboncoin/AnalysisSection'
 import SalesSection from './leboncoin/SalesSection'
 
-type Tab = 'ads' | 'sales'
+type Tab = 'ads' | 'sales' | 'analysis'
 
 export default function LeboncoinWindow() {
   const [tab, setTab] = useState<Tab>('ads')
@@ -26,8 +27,13 @@ export default function LeboncoinWindow() {
         <button type="button" role="tab" aria-selected={tab === 'sales'} onClick={() => setTab('sales')}>
           Mes ventes
         </button>
+        <button type="button" role="tab" aria-selected={tab === 'analysis'} onClick={() => setTab('analysis')}>
+          Analyser
+        </button>
       </div>
-      {tab === 'ads' ? <AdsSection onError={onError} /> : <SalesSection onError={onError} />}
+      {tab === 'ads' && <AdsSection onError={onError} />}
+      {tab === 'sales' && <SalesSection onError={onError} />}
+      {tab === 'analysis' && <AnalysisSection onError={onError} />}
     </div>
   )
 }

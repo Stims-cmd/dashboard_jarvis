@@ -86,3 +86,45 @@ export function isLeboncoinUrl(href: string) {
     return false
   }
 }
+
+export type Verdict = 'interessant' | 'a_verifier' | 'a_eviter'
+
+export interface AnalysisResult {
+  verdict: Verdict
+  resume: string
+  criteres: { critere: string; statut: 'ok' | 'ko' | 'inconnu'; detail: string }[]
+  fiabilite: string
+  arnaque: string
+  prix: string
+  questions_vendeur: string[]
+}
+
+export interface Analysis {
+  id: number
+  title: string
+  ad_text: string
+  criteria: string
+  keywords: string
+  price_cents: number | null
+  signals: string[]
+  comparables: { count: number; min_cents: number | null; median_cents: number | null; max_cents: number | null }
+  result: AnalysisResult | null
+  sources: { url: string; title: string }[]
+  source: 'claude' | 'local'
+  created_at: string
+}
+
+export const VERDICTS: Record<Verdict, string> = {
+  interessant: 'Intéressant',
+  a_verifier: 'À vérifier',
+  a_eviter: 'À éviter',
+}
+
+// Sources come from web search results: only https links are clickable.
+export function isHttpsUrl(href: string) {
+  try {
+    return new URL(href).protocol === 'https:'
+  } catch {
+    return false
+  }
+}
