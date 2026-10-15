@@ -8,12 +8,14 @@ from sqlalchemy import func, select
 
 from app.core_models import CollectorRun
 from app.deps import AppSettings, DbSession
+from modules.leboncoin.analysis_routes import router as analysis_router
 from modules.leboncoin.mailbox import ImapConfig
 from modules.leboncoin.models import Ad
 from modules.leboncoin.sales_routes import router as sales_router
 
 router = APIRouter()
 router.include_router(sales_router)
+router.include_router(analysis_router)
 
 STALE_AFTER = timedelta(hours=3)  # hourly collection + margin
 
