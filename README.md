@@ -172,6 +172,16 @@ Pour chaque objet à vendre : état, détails, prix demandé et prix plancher, s
 - **Annonces comparables** : annonces déjà collectées par les alertes dont le titre contient tous les mots-clés de l'objet, avec la médiane et la fourchette de prix. Vide tant que la lecture des alertes n'est pas branchée.
 - **Rappel de baisse** : si l'objet est en vente depuis N jours (14 par défaut) sans changement de prix, la fenêtre propose une baisse de 10 %, jamais sous le prix plancher. « J'ai baissé le prix » enregistre la baisse une fois faite sur Leboncoin.
 
+### Analyse d'annonces (onglet « Analyser »)
+
+Tu colles le texte d'une annonce repérée sur Leboncoin (titre, prix, description, lieu) et tes critères du moment (« budget 300 €, moins de 3 ans… »). Jarvis **ne lit pas leboncoin.fr** : aucun lien n'est ouvert, seul le texte collé est utilisé.
+
+- **Sans Claude** (toujours fait) : prix lu dans le texte, annonces comparables déjà collectées (mots-clés tirés du titre ou saisis), et signaux d'arnaque simples : paiement par virement, mandat ou PayPal « entre amis », coupons prépayés, échange par WhatsApp/SMS, envoi uniquement, vendeur à l'étranger, urgence, coordonnées dans l'annonce, prix sous la moitié de la médiane des comparables. Un signal n'est pas une preuve.
+- **Avec Claude** (si `ANTHROPIC_API_KEY` est définie) : vérification de chaque critère, fiabilité du modèle (défauts connus, rappels) grâce à **4 recherches web au maximum**, avis sur le risque d'arnaque et le prix, questions à poser au vendeur, et liens vers les sources. Les recherches sont faites par l'API Claude (outil `web_search`, leboncoin.fr exclu) et coûtent 0,01 $ chacune en plus des tokens ; `llm_calls` enregistre le nombre de recherches et le coût estimé. Une analyse prend jusqu'à une minute.
+- **Données** : les e-mails, numéros de téléphone et IBAN sont retirés du texte et des critères avant l'envoi à Claude et avant l'enregistrement. Le texte de l'annonce est traité comme une donnée non fiable (il peut contenir des consignes piégées) : il est isolé dans le prompt et les résultats sont affichés en texte brut, seuls les liens `https` étant cliquables.
+
+C'est une aide indicative : vérifie toi-même et ne paie jamais en dehors de Leboncoin.
+
 ## Sécurité
 
 - `.env` n'est jamais commité ; `.env.example` documente chaque variable.
