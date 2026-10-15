@@ -1,13 +1,25 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { api } from '../../api'
 import { formatCents } from '../finances/money'
-import { BASE, day, isHttpsUrl, VERDICTS, type Analysis } from './types'
+import {
+  BASE,
+  CHECK_STATUSES,
+  day,
+  isHttpsUrl,
+  URGENCIES,
+  VERDICTS,
+  type Analysis,
+  type CheckStatus,
+  type Vehicle,
+} from './types'
 
-const STATUS_MARKS = { ok: '✓', ko: '✗', inconnu: '?' } as const
+const OPINION_MARKS = { positif: '+', negatif: '−', neutre: '·' } as const
+
+const range = (minCents: number, maxCents: number) =>
+  minCents === maxCents ? formatCents(minCents) : `${formatCents(minCents)} à ${formatCents(maxCents)}`
 
 function AnalysisForm({ onDone }: { onDone: (analysis: Analysis) => void }) {
   const [text, setText] = useState('')
-  const [criteria, setCriteria] = useState('')
   const [keywords, setKeywords] = useState('')
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -17,7 +29,7 @@ function AnalysisForm({ onDone }: { onDone: (analysis: Analysis) => void }) {
     setRunning(true)
     setError(null)
     try {
-      const analysis = await api.post<Analysis>(`${BASE}/analyses`, { text, criteria, keywords })
+      const analysis = await api.post<Analysis>(`${BASE}/analyses`, { text, keywords })
       setText('')
       setKeywords('')
       onDone(analysis)
@@ -38,13 +50,6 @@ function AnalysisForm({ onDone }: { onDone: (analysis: Analysis) => void }) {
         rows={6}
         required
       />
-      <textarea
-        placeholder="Tes critères (ex. budget 300 €, moins de 3 ans, pas de rayure, taille M)"
-        value={criteria}
-        onChange={(e) => setCriteria(e.target.value)}
-        maxLength={1000}
-        rows={2}
-      />
       <input
         placeholder="Mots-clés pour comparer (optionnel, sinon pris dans le titre)"
         value={keywords}
@@ -56,6 +61,55 @@ function AnalysisForm({ onDone }: { onDone: (analysis: Analysis) => void }) {
       </button>
       {error && <span className="error">{error}</span>}
     </form>
+  )
+}
+
+function Check({ label, check }: { label: string; check: { statut: CheckStatus; detail: string } }) {
+  return (
+    <li>
+      <strong>{label}</strong> <span className={`badge lbc-status-${check.statut}`}>{CHECK_STATUSES[check.statut]}</span>
+      {check.detail && <span className="fin-meta"> — {check.detail}</span>}
+    </li>
+  )
+}
+
+function VehiclePanel({ vehicle, total }: { vehicle: Vehicle; total: [number, number] | null }) {
+  return (
+    <div className="lbc-draft">
+      <h4 className="lbc-analysis-title">Voiture</h4>
+      <ul className="lbc-analysis-list lbc-plain-list">
+        <Check label="Carte grise" check={vehicle.carte_grise} />
+        <Check label="Contrôle technique" check={vehicle.controle_technique} />
+      </ul>
+      <h4 className="lbc-analysis-title">Réparations à prévoir</h4>
+      {vehicle.reparations.length === 0 ? (
+        <p className="fin-meta">Aucune repérée dans l'annonce.</p>
+      ) : (
+        <table className="lbc-repairs">
+          <tbody>
+            {vehicle.reparations.map((repair) => (
+              <tr key={repair.element}>
+                <td>{repair.element}</td>
+                <td className={`lbc-urgency-${repair.urgence}`}>{URGENCIES[repair.urgence]}</td>
+                <td className="fin-amount">{range(repair.cout_min_euros * 100, repair.cout_max_euros * 100)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {total && (
+        <p className="lbc-total">
+          Coût estimé : <strong>{range(total[0], total[1])}</strong>
+          <span className="fin-meta">
+            {' '}
+            (prix
+            {vehicle.frais_carte_grise_euros !== null &&
+              ` + carte grise ${formatCents(vehicle.frais_carte_grise_euros * 100)}`}
+            {vehicle.reparations.length > 0 && ' + réparations'})
+          </span>
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -79,7 +133,12 @@ function AnalysisCard({ analysis, open, onDelete }: { analysis: Analysis; open: 
           </span>
         </summary>
         <div className="fin-meta">
-          {day(analysis.created_at)} · {analysis.source === 'claude' ? 'analyse Claude' : 'analyse locale (sans Claude)'}
+          {day(analysis.created_at)} ·{' '}
+          {analysis.source === 'local'
+            ? 'analyse locale (sans Claude)'
+            : result
+              ? 'analyse Claude'
+              : 'analyse Claude dans un ancien format, relance-la'}
         </div>
 
         {result && <p className="lbc-draft-body">{result.resume}</p>}
@@ -97,25 +156,25 @@ function AnalysisCard({ analysis, open, onDelete }: { analysis: Analysis; open: 
 
         {result && (
           <>
-            {result.criteres.length > 0 && (
+            {result.elements.length > 0 && (
               <>
-                <h4 className="lbc-analysis-title">Tes critères</h4>
-                <ul className="lbc-analysis-list">
-                  {result.criteres.map((check) => (
-                    <li key={check.critere} className={`lbc-check-${check.statut}`}>
-                      <span aria-label={check.statut}>{STATUS_MARKS[check.statut]}</span> {check.critere}
-                      {check.detail && <span className="fin-meta"> — {check.detail}</span>}
+                <h4 className="lbc-analysis-title">Ce que dit l'annonce</h4>
+                <ul className="lbc-analysis-list lbc-plain-list">
+                  {result.elements.map((element) => (
+                    <li key={element.point} className={`lbc-opinion-${element.avis}`}>
+                      <span aria-label={element.avis}>{OPINION_MARKS[element.avis]}</span> {element.point}
                     </li>
                   ))}
                 </ul>
               </>
             )}
+            {result.vehicule && <VehiclePanel vehicle={result.vehicule} total={analysis.estimated_total_cents} />}
+            <h4 className="lbc-analysis-title">Prix</h4>
+            <p className="lbc-draft-body">{result.prix || 'Pas d’avis.'}</p>
             <h4 className="lbc-analysis-title">Fiabilité du modèle</h4>
             <p className="lbc-draft-body">{result.fiabilite || 'Rien trouvé.'}</p>
             <h4 className="lbc-analysis-title">Risque d'arnaque</h4>
             <p className="lbc-draft-body">{result.arnaque || 'Rien à signaler.'}</p>
-            <h4 className="lbc-analysis-title">Prix</h4>
-            <p className="lbc-draft-body">{result.prix || 'Pas d’avis.'}</p>
             {result.questions_vendeur.length > 0 && (
               <>
                 <h4 className="lbc-analysis-title">Questions à poser au vendeur</h4>
@@ -141,21 +200,22 @@ function AnalysisCard({ analysis, open, onDelete }: { analysis: Analysis; open: 
           <>
             <h4 className="lbc-analysis-title">Sources</h4>
             <ul className="lbc-analysis-list fin-meta">
-              {analysis.sources.filter((s) => isHttpsUrl(s.url)).map((s) => (
-                <li key={s.url}>
-                  <a href={s.url} target="_blank" rel="noreferrer noopener">
-                    {s.title}
-                  </a>
-                </li>
-              ))}
+              {analysis.sources
+                .filter((s) => isHttpsUrl(s.url))
+                .map((s) => (
+                  <li key={s.url}>
+                    <a href={s.url} target="_blank" rel="noreferrer noopener">
+                      {s.title}
+                    </a>
+                  </li>
+                ))}
             </ul>
           </>
         )}
 
         <details>
-          <summary>Annonce et critères envoyés</summary>
+          <summary>Annonce envoyée</summary>
           <p className="lbc-draft-body">{analysis.ad_text}</p>
-          {analysis.criteria && <p className="lbc-draft-body fin-meta">Critères : {analysis.criteria}</p>}
         </details>
         <div className="fin-meta lbc-actions">
           <button type="button" className="link-button" onClick={remove}>
@@ -197,9 +257,11 @@ export default function AnalysisSection({ onError }: { onError: (err: unknown) =
         </ul>
       )}
       <p className="disclaimer">
-        Informations indicatives : vérifie toi-même avant d'acheter, et ne paie jamais hors de Leboncoin. Jarvis ne lit
-        pas leboncoin.fr : colle le texte de l'annonce. Les e-mails, numéros de téléphone et IBAN sont retirés avant
-        l'envoi à Claude, qui peut faire quelques recherches web (environ 1 centime chacune).
+        Informations indicatives : les coûts de réparation sont des estimations, fais inspecter la voiture et vérifie
+        les documents (carte grise, contrôle technique, situation administrative sur HistoVec) avant d'acheter. Ne paie
+        jamais hors de Leboncoin. Jarvis ne lit pas leboncoin.fr : colle le texte de l'annonce. Les e-mails, numéros de
+        téléphone et IBAN sont retirés avant l'envoi à Claude, qui peut faire quelques recherches web (environ 1 centime
+        chacune).
       </p>
     </div>
   )
