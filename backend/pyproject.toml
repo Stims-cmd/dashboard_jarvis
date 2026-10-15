@@ -12,6 +12,8 @@ dependencies = [
     "alembic>=1.20",
     "httpx2>=2.13",
     "anthropic>=1.13",
+    "pyotp>=2.10",
+    "qrcode>=8.2",
 ]
 
 [dependency-groups]
