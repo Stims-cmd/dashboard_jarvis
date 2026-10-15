@@ -35,6 +35,14 @@ Dashboard web personnel en fenêtres : chaque module (veille cyber, finances, OS
 
 4. Ajuster `JARVIS_ADMIN_USERNAME` si besoin.
 
+5. Activer la double authentification (recommandé, indispensable sur le VPS) :
+
+   ```sh
+   docker compose -f docker-compose.dev.yml run --rm backend python -m app.totp_setup
+   ```
+
+   Scanner le QR code avec une application d'authentification (Aegis, Google Authenticator…), saisir le code affiché pour confirmer, puis copier la ligne `JARVIS_TOTP_SECRET=...` dans `.env` et redémarrer. La page de connexion demande alors un code à 6 chiffres.
+
 ## Lancement en local
 
 ```sh
@@ -168,6 +176,8 @@ Pour chaque objet à vendre : état, détails, prix demandé et prix plancher, s
 
 - `.env` n'est jamais commité ; `.env.example` documente chaque variable.
 - Un seul compte, mot de passe haché (argon2), sessions côté serveur (cookie `HttpOnly`, `SameSite=Strict`), connexion bloquée 15 minutes après 5 échecs.
+- Double authentification TOTP (RFC 6238) si `JARVIS_TOTP_SECRET` est défini : code à 6 chiffres, tolérance de ±30 s, un code déjà utilisé est refusé. Sans secret, le backend affiche un avertissement au démarrage. Les deux facteurs sont toujours vérifiés et l'erreur ne dit pas lequel est faux.
+- Téléphone perdu ou changé : relancer `python -m app.totp_setup`, remplacer `JARVIS_TOTP_SECRET` dans `.env` et redémarrer ; l'ancien secret ne fonctionne plus. Le secret TOTP est aussi sensible que le hash du mot de passe : il ne quitte jamais `.env`.
 - La base SQLite vit dans un volume Docker (`/data`), hors du dépôt.
 
 ## Structure

@@ -68,6 +68,7 @@ Projet mis de côté : comparateur d'assurances.
 Tout passe par Docker (aucun outil local requis hormis Docker). Depuis la racine du dépôt :
 - Lancer en dev (backend + frontend, rechargement auto) : `docker compose -f docker-compose.dev.yml up --build` → http://localhost:5173 (ajouter `-V` après un changement de `package.json`, sinon le volume `node_modules` reste l'ancien)
 - Générer le hash du mot de passe : `docker compose -f docker-compose.dev.yml run --rm backend python -m app.hash_password`
+- Activer le TOTP (QR code à scanner, puis `JARVIS_TOTP_SECRET` dans `.env`) : `docker compose -f docker-compose.dev.yml run --rm backend python -m app.totp_setup`
 - Tests backend : `docker compose -f docker-compose.dev.yml run --rm backend pytest`
 - Lint backend : `docker compose -f docker-compose.dev.yml run --rm backend sh -c "ruff check && ruff format --check"`
 - Lint + build frontend : `docker compose -f docker-compose.dev.yml run --rm frontend sh -c "npm run lint && npm run build"` (linter : oxlint, fourni par le gabarit Vite)
