@@ -76,7 +76,6 @@ class AdAnalysis(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String(200))
     ad_text: Mapped[str] = mapped_column(Text)
-    criteria: Mapped[str] = mapped_column(Text, default="")
     keywords: Mapped[str] = mapped_column(String(200), default="")
     price_cents: Mapped[int | None] = mapped_column(Integer)
     signals: Mapped[list] = mapped_column(JSON, default=list)  # local scam signals

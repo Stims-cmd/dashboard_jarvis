@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Response, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import select
 
 from app.deps import DbSession
@@ -25,12 +25,11 @@ router = APIRouter(prefix="/analyses")
 
 HISTORY_SHOWN = 20
 MAX_SOURCES = 10
-MAX_SEARCHES = 4
+MAX_SEARCHES = 5
 
 
 class AnalysisIn(BaseModel):
     text: str = Field(min_length=1, max_length=analysis.MAX_AD_CHARS)
-    criteria: str = Field(default="", max_length=analysis.MAX_CRITERIA_CHARS)
     keywords: str = Field(default="", max_length=200)  # empty: taken from the title
 
 
@@ -50,30 +49,44 @@ class AnalysisOut(BaseModel):
     id: int
     title: str
     ad_text: str
-    criteria: str
     keywords: str
     price_cents: int | None
     signals: list[str]
     comparables: StatsOut
     result: AnalysisResult | None
+    # (min, max) cents: price + registration fees + repairs, vehicles only.
+    estimated_total_cents: tuple[int, int] | None
     sources: list[SourceOut]
     source: Literal["claude", "local"]
     created_at: datetime
 
 
+def _result(row: AdAnalysis) -> AnalysisResult | None:
+    """Analyses stored in an older format are shown without Claude's part."""
+    if row.result is None:
+        return None
+    try:
+        return AnalysisResult.model_validate(row.result)
+    except ValidationError:
+        return None
+
+
 def _out(row: AdAnalysis) -> AnalysisOut:
     created = row.created_at
+    result = _result(row)
     return AnalysisOut(
         id=row.id,
         title=row.title,
         ad_text=row.ad_text,
-        criteria=row.criteria,
         keywords=row.keywords,
         price_cents=row.price_cents,
         signals=row.signals,
         comparables=StatsOut(**row.comparables),
-        result=row.result,
-        sources=row.sources,
+        result=result,
+        estimated_total_cents=analysis.estimated_total(
+            row.price_cents, result.vehicule if result else None
+        ),
+        sources=row.sources if result else [],
         source=row.source,
         created_at=created.replace(tzinfo=UTC) if created.tzinfo is None else created,
     )
@@ -107,14 +120,14 @@ def create_analysis(data: AnalysisIn, db: DbSession, llm: Llm) -> AnalysisOut:
     stats = comparables_stats([a.price_cents for a in found if a.price_cents is not None])
     # Signals are searched in the raw text: contact details are one of them.
     signals = analysis.scam_signals(data.text, price, stats)
-    ad_text, criteria = redact(data.text), redact(data.criteria)
+    ad_text = redact(data.text)
 
     result, sources = None, []
     if llm.enabled:
         research = llm.research(
             "leboncoin.analysis",
             analysis.SYSTEM,
-            analysis.analysis_prompt(ad_text, criteria, price, stats, signals),
+            analysis.analysis_prompt(ad_text, price, stats, signals),
             max_searches=MAX_SEARCHES,
             blocked_domains=["leboncoin.fr"],
         )
@@ -130,7 +143,6 @@ def create_analysis(data: AnalysisIn, db: DbSession, llm: Llm) -> AnalysisOut:
     row = AdAnalysis(
         title=redact(title) or "Annonce sans titre",
         ad_text=ad_text,
-        criteria=criteria,
         keywords=" ".join(words),
         price_cents=price,
         signals=signals,
